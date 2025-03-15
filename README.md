@@ -14,5 +14,5 @@ docker pull pgvector/pgvector:pg17
 ```
 
 ```
-docker run -d -v ./postgres_volume:/var/lib/postgresql/data -p 5432:5432 --name triple-s-db -e POSTGRES_PASSWORD=ValhalaWithZolinks postgres:17
+docker run -d -v ./postgres_volume:/var/lib/postgresql/data -p 5432:5432 --name triple-s-db -e POSTGRES_PASSWORD=ValhalaWithZolinks pgvector/pgvector:pg17
 ```
