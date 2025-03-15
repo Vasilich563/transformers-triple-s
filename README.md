@@ -7,7 +7,12 @@ Transformers Triple-S is semantic search system, that uses transformer's powers 
 To run database use command:
 ```
 docker pull postgres:17
-docker pull pgvector/pgvector:pg17
+```
 
-docker run -d -v /custom/mount:/var/lib/postgresql/data -p 5432:5432 -e POSTGRES_PASSWORD=ValhalaWithZolinks --name triple-s-db postgres
+```
+docker pull pgvector/pgvector:pg17
+```
+
+```
+docker run -d -v ./postgres_volume:/var/lib/postgresql/data -p 5432:5432 --name triple-s-db -e POSTGRES_PASSWORD=ValhalaWithZolinks postgres
 ```
