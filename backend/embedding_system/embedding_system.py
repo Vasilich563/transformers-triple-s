@@ -58,13 +58,14 @@ class EmbeddingSystem:
                 return tokenized_text["input_ids"], tokenized_text["attention_mask"]
 
 
-    def _count_text_embeddings(self, text_input_ids, text_attention_mask, mean_along_batch):
+    def _count_text_embeddings(self, text_input_ids, text_attention_mask, mean_across_batch):
         with torch.no_grad():
             text_input_ids = text_input_ids.to(self._embedding_model.device)
             text_attention_mask = text_attention_mask.to(self._embedding_model.device)
             text_embedding_batch = self._embedding_model.forward(text_input_ids, text_attention_mask)
+            text_embedding_batch = text_embedding_batch.mean(dim=-2)  # mean across sequence
 
-            if mean_along_batch:
+            if mean_across_batch:
                 return [text_embedding_batch.mean(dim=0).detach().cpu().tolist()]
             else:
                 return text_embedding_batch.detach().cpu().tolist()
@@ -94,7 +95,7 @@ class EmbeddingSystem:
         text_input_ids, text_attention_mask, snippet_bounds = self._tokenize_text(
             document_text, self._level_1_max_len, self._level_1_stride, return_snippet_bounds=True
         )
-        text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_along_batch=False)
+        text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
         list_of_rows_for_db = self._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
         await self._db_crud.write_level1_snippet_rows(list_of_rows_for_db)
 
@@ -103,7 +104,7 @@ class EmbeddingSystem:
             text_input_ids, text_attention_mask, snippet_bounds = self._tokenize_text(
                 document_text, self._level_2_max_len, self._level_2_stride, return_snippet_bounds=True
             )
-            text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_along_batch=False)
+            text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
             list_of_rows_for_db = self._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
             await self._db_crud.write_level2_snippet_rows(list_of_rows_for_db)
 
@@ -112,45 +113,51 @@ class EmbeddingSystem:
                 text_input_ids, text_attention_mask, snippet_bounds = self._tokenize_text(
                     document_text, self._level_3_max_len, self._level_3_stride, return_snippet_bounds=True
                 )
-                text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_along_batch=False)
+                text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
                 list_of_rows_for_db = self._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
                 await self._db_crud.write_level3_snippet_rows(list_of_rows_for_db)
 
 
     async def handle_user_query(self, query, limit=25):
+        level = 1
         input_ids, attention_mask = self._tokenize_text(
             query, self._level_1_max_len, self._level_1_stride, return_snippet_bounds=False
         )
         # if query is big the next level is used to find snippet
         if input_ids.shape[0] > self._windows_before_next_level(self._level_2_max_len, self._level_1_max_len, self._level_1_stride):
+            level = 2
             input_ids, attention_mask = self._tokenize_text(
                 query, self._level_2_max_len, self._level_2_stride, return_snippet_bounds=False
             )
             # if query is big the next level is used to find snippet
             if input_ids.shape[0] > self._windows_before_next_level(self._level_3_max_len, self._level_2_max_len, self._level_2_stride):
+                level = 3
                 input_ids, attention_mask = self._tokenize_text(
                     query, self._level_3_max_len, self._level_3_stride, return_snippet_bounds=False
                 )
-        # TODO query
+
+        text_embedding_batch = self._count_text_embeddings(input_ids, attention_mask, mean_across_batch=False)
+        if level == 1:
+            await self._db_crud.select_from_level1(text_embedding_batch, limit)
+        elif level == 2:
+            await self._db_crud.select_from_level2(text_embedding_batch, limit)
+        else:
+            await self._db_crud.select_from_level3(text_embedding_batch, limit)
 
 
     async def remove_document(self, document_path):
-        # TODO remove
-        pass
+        await self._db_crud.remove_from_all_levels(document_path)
 
 
     async def update_document(self, document_path, new_text):
-        # TODO delete old
-        # TODO write new
-        pass
+        await self._db_crud.remove_from_all_levels(document_path)
+        await self.index_new_text(new_text, document_path)
 
 
     async def change_document_path(self, old_document_path, new_document_path):
-        pass
+        await self._db_crud.change_document_path_all_levels(old_document_path, new_document_path, new_document_path)
 
 
-    async def get_text_by_name(self, document_name):
-        pass
 
 
 
