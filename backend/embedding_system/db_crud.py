@@ -26,7 +26,7 @@ class DBCrud:
                   document_name, 
                   snippet, 
                   embedding <=> CAST(:query_embedding AS vector({embedding_dim})) AS cos_distance
-                FROM {table_name} ORDER BY embedding <=> CAST(:query_embedding AS vector({embedding_dim}))
+                FROM {schema_name}.{table_name} ORDER BY embedding <=> CAST(:query_embedding AS vector({embedding_dim}))
             ) distances_query 
             ORDER BY document_path, cos_distance
             LIMIT :limit
@@ -35,11 +35,22 @@ class DBCrud:
     __select_by_name_template = """
         SELECT DISTINCT ON (document_path)
             document_path, :document_name AS document_name, snippet, 0 AS cos_distance 
-            FROM {table_name}
+            FROM {schema_name}.{table_name}
             WHERE document_name = :document_name
             ORDER BY document_path, snippet_name
             LIMIT :limit
         """
+
+    __delete_template = """
+        DELETE FROM {schema_name}.{table_name} WHERE document_path = document_path
+    """
+
+    __update_template = """
+        UPDATE {schema_name}.{table_name} 
+            SET document_path = :new_document_path, document_name = :new_document_name
+            WHERE document_path = :old_document_path 
+    """
+
 
     def __init__(self, db_engine: AsyncEngine):
         self._db_engine: AsyncEngine = db_engine
@@ -108,7 +119,7 @@ class DBCrud:
     async def _select_by_name(self, connection, level_table_name, document_name, limit):
         return (
             await connection.execute(
-                text(self.__select_by_name_template.format(table_name=level_table_name)),
+                text(self.__select_by_name_template.format(schema_name= SCHEMA_NAME, table_name=level_table_name)),
                 {"document_name": document_name, "limit": limit}
             ).all()
         )
@@ -116,12 +127,17 @@ class DBCrud:
     async def _select_from_level_for_one_embedding(self, connection, level_table_name, query_embedding_list, limit):
         return (
             await connection.execute(
-                text(self.__select_by_embedding_template.format(table_name=level_table_name, embedding_dim=EMBEDDING_DIM)),
+                text(
+                    self.__select_by_embedding_template.format(
+                        schema_name=SCHEMA_NAME, table_name=level_table_name, embedding_dim=EMBEDDING_DIM
+                    )
+                ),
                 {"limit": limit, "query_embedding": query_embedding_list[0]}
             )
         ).all()
 
-    async def _select_from_level(self, connection, queries_results, level_table_name, query_embedding_list, limit):
+    async def _select_from_level(self, connection, level_table_name, query_embedding_list, limit):
+        queries_results = []
         for i in range(len(query_embedding_list)):
             queries_results.extend(
                 await self._select_from_level_for_one_embedding(connection, level_table_name, query_embedding_list[i], limit)
@@ -131,28 +147,80 @@ class DBCrud:
         return queries_results
 
     async def select_from_level1(self, query_embedding_list, limit):
-        with self._db_engine.begin() as connection:
-            queries_results = []
-            queries_results = self._select_from_level(
-                connection, queries_results, self._level1_name, query_embedding_list, limit
-            )
+        async with self._db_engine.begin() as connection:
+            queries_results = await self._select_from_level(connection, self._level1_name, query_embedding_list, limit)
 
         return queries_results[:limit]
 
     async def select_from_level2(self, query_embedding_list, limit):
-        with self._db_engine.begin() as connection:
-            queries_results = []
-            queries_results = self._select_from_level(
-                connection, queries_results, self._level2_name, query_embedding_list, limit
-            )
+        async with self._db_engine.begin() as connection:
+            queries_results = await self._select_from_level(connection, self._level2_name, query_embedding_list, limit)
 
         return queries_results[:limit]
 
     async def select_from_level3(self, query_embedding_list, limit):
-        with self._db_engine.begin() as connection:
-            queries_results = []
-            queries_results = self._select_from_level(
-                connection, queries_results, self._level3_name, query_embedding_list, limit
-            )
+        async with self._db_engine.begin() as connection:
+            queries_results = await self._select_from_level(connection, self._level3_name, query_embedding_list, limit)
 
         return queries_results[:limit]
+
+    async def _delete_from_table(self, connection, table_name, document_path):
+        await connection.execute(
+            text(self.__delete_template.format(schema_name=SCHEMA_NAME, table_name=table_name)),
+            {"document_path": document_path}
+        )
+
+    async def remove_from_level1(self, document_path):
+        async with self._db_engine.begin() as connection:
+            await self._delete_from_table(connection, self._level1_name, document_path)
+
+    async def remove_from_level2(self, document_path):
+        async with self._db_engine.begin() as connection:
+            await self._delete_from_table(connection, self._level2_name, document_path)
+
+    async def remove_from_level3(self, document_path):
+        async with self._db_engine.begin() as connection:
+            await self._delete_from_table(connection, self._level3_name, document_path)
+
+    async def remove_from_all_levels(self, document_path):
+        async with self._db_engine.begin() as connection:
+            await self._delete_from_table(connection, self._level1_name, document_path)
+            await self._delete_from_table(connection, self._level2_name, document_path)
+            await self._delete_from_table(connection, self._level3_name, document_path)
+
+    async def _change_document_path_in_table(self, connection, table_name, old_path, new_path, new_name):
+        await connection.execute(
+            text(self.__update_template.format(schema_name=SCHEMA_NAME, table_name=table_name)),
+            {"old_document_path": old_path, "new_document_path": new_path, "new_document_name": new_name}
+        )
+
+    async def change_document_path_level1(self, old_document_path, new_document_path, new_document_name):
+        async with self._db_engine.begin() as connection:
+            await self._change_document_path_in_table(
+                connection, self._level1_name, old_document_path, new_document_path, new_document_name
+            )
+
+    async def change_document_path_level2(self, old_document_path, new_document_path, new_document_name):
+        async with self._db_engine.begin() as connection:
+            await self._change_document_path_in_table(
+                connection, self._level2_name, old_document_path, new_document_path, new_document_name
+            )
+
+    async def change_document_path_level3(self, old_document_path, new_document_path, new_document_name):
+        async with self._db_engine.begin() as connection:
+            await self._change_document_path_in_table(
+                connection, self._level3_name, old_document_path, new_document_path, new_document_name
+            )
+
+    async def change_document_path_all_levels(self, old_document_path, new_document_path, new_document_name):
+        async with self._db_engine.begin() as connection:
+            await self._change_document_path_in_table(
+                connection, self._level1_name, old_document_path, new_document_path, new_document_name
+            )
+            await self._change_document_path_in_table(
+                connection, self._level2_name, old_document_path, new_document_path, new_document_name
+            )
+            await self._change_document_path_in_table(
+                connection, self._level3_name, old_document_path, new_document_path, new_document_name
+            )
+
