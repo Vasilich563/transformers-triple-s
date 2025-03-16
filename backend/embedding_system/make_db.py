@@ -5,7 +5,7 @@ SCHEMA_NAME = "triple_s"
 LEVEL_TABLE_NAME_PREFIX = "snippet_level"
 
 
-def actions_on_snippet_level(level):
+def actions_on_snippet_level(connection, level):
     connection.execute(
         text(f"""
             CREATE TABLE IF NOT EXISTS triple_s.{LEVEL_TABLE_NAME_PREFIX}{level}(
@@ -44,11 +44,14 @@ if __name__ == "__main__":
 
         connection.execute(text(f"""CREATE SCHEMA IF NOT EXISTS {SCHEMA_NAME};"""))
 
-        actions_on_snippet_level(1)
+        actions_on_snippet_level(connection, 1)
 
-        actions_on_snippet_level(2)
+        actions_on_snippet_level(connection, 2)
 
-        actions_on_snippet_level(3)
+        actions_on_snippet_level(connection, 3)
+
+
+
 
 
 
