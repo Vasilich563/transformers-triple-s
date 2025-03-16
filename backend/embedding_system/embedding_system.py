@@ -96,31 +96,37 @@ class EmbeddingSystem:
         )
         text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_along_batch=False)
         list_of_rows_for_db = self._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-        # TODO save
+        await self._db_crud.write_level1_snippet_rows(list_of_rows_for_db)
 
-        text_input_ids, text_attention_mask, snippet_bounds = self._tokenize_text(
-            document_text, self._level_2_max_len, self._level_2_stride, return_snippet_bounds=True
-        )
-        text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_along_batch=False)
-        list_of_rows_for_db = self._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-        # TODO save
+        # if text is big enough to place it on the next level too
+        if text_input_ids.shape[0] > self._windows_before_next_level(self._level_2_max_len, self._level_1_max_len, self._level_1_stride):
+            text_input_ids, text_attention_mask, snippet_bounds = self._tokenize_text(
+                document_text, self._level_2_max_len, self._level_2_stride, return_snippet_bounds=True
+            )
+            text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_along_batch=False)
+            list_of_rows_for_db = self._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
+            await self._db_crud.write_level2_snippet_rows(list_of_rows_for_db)
 
-        text_input_ids, text_attention_mask, snippet_bounds = self._tokenize_text(
-            document_text, self._level_3_max_len, self._level_3_stride, return_snippet_bounds=True
-        )
-        text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_along_batch=False)
-        list_of_rows_for_db = self._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-        # TODO save
+            # if text is big enough to place it on the next level too
+            if text_input_ids.shape[0] > self._windows_before_next_level(self._level_3_max_len, self._level_2_max_len, self._level_2_stride):
+                text_input_ids, text_attention_mask, snippet_bounds = self._tokenize_text(
+                    document_text, self._level_3_max_len, self._level_3_stride, return_snippet_bounds=True
+                )
+                text_embeddings = self._count_text_embeddings(text_input_ids, text_attention_mask, mean_along_batch=False)
+                list_of_rows_for_db = self._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
+                await self._db_crud.write_level3_snippet_rows(list_of_rows_for_db)
 
 
     async def handle_user_query(self, query, limit=25):
         input_ids, attention_mask = self._tokenize_text(
             query, self._level_1_max_len, self._level_1_stride, return_snippet_bounds=False
         )
+        # if query is big the next level is used to find snippet
         if input_ids.shape[0] > self._windows_before_next_level(self._level_2_max_len, self._level_1_max_len, self._level_1_stride):
             input_ids, attention_mask = self._tokenize_text(
                 query, self._level_2_max_len, self._level_2_stride, return_snippet_bounds=False
             )
+            # if query is big the next level is used to find snippet
             if input_ids.shape[0] > self._windows_before_next_level(self._level_3_max_len, self._level_2_max_len, self._level_2_stride):
                 input_ids, attention_mask = self._tokenize_text(
                     query, self._level_3_max_len, self._level_3_stride, return_snippet_bounds=False
