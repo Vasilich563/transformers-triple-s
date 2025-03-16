@@ -138,11 +138,13 @@ class EmbeddingSystem:
 
         text_embedding_batch = self._count_text_embeddings(input_ids, attention_mask, mean_across_batch=False)
         if level == 1:
-            await self._db_crud.select_from_level1(text_embedding_batch, limit)
+            result = await self._db_crud.select_from_level1(text_embedding_batch, limit)
         elif level == 2:
-            await self._db_crud.select_from_level2(text_embedding_batch, limit)
+            result = await self._db_crud.select_from_level2(text_embedding_batch, limit)
         else:
-            await self._db_crud.select_from_level3(text_embedding_batch, limit)
+            result = await self._db_crud.select_from_level3(text_embedding_batch, limit)
+        return result
+
 
 
     async def remove_document(self, document_path):
