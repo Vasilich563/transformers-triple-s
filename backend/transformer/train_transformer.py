@@ -164,7 +164,7 @@ if __name__ == "__main__":
     #pprint(dataset)
     #print(dataset)
 
-
+    # TODO make optimizer(model.parameters(recurse=True))  
     model = BidirectionalTransformer(len(tokenizer.get_vocab()), 8, 1, 32, 2, 14, 0, torch.device("cuda"), torch.float32, tokenizer.pad_token_type_id)
     from bidirectional_transformer import make_mask
     from torch.utils.data import DataLoader
