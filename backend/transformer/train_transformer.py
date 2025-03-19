@@ -164,21 +164,24 @@ if __name__ == "__main__":
     #pprint(dataset)
     #print(dataset)
 
-    # TODO make optimizer(model.parameters(recurse=True))  
+
     model = BidirectionalTransformer(len(tokenizer.get_vocab()), 8, 1, 32, 2, 14, 0, torch.device("cuda"), torch.float32, tokenizer.pad_token_type_id)
+
+
+
     from bidirectional_transformer import make_mask
     from torch.utils.data import DataLoader
 
     loader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn=mlm)
-    for x in loader:
-        #print(make_mask(x["hugging_face_mask"], torch.float32).shape)
-        model(
-            x["input_ids"].to(torch.device("cuda")),
-            hugging_face_mask=torch.tensor([
-                [1, 1, 1, 1, 1, 0, 0, 0],
-                [1, 1, 1, 1, 1, 1, 1, 0]
-            ], requires_grad=False, device=torch.device("cuda"))
-        )
+    # for x in loader:
+    #     #print(make_mask(x["hugging_face_mask"], torch.float32).shape)
+    #     model(
+    #         x["input_ids"].to(torch.device("cuda")),
+    #         hugging_face_mask=torch.tensor([
+    #             [1, 1, 1, 1, 1, 0, 0, 0],
+    #             [1, 1, 1, 1, 1, 1, 1, 0]
+    #         ], requires_grad=False, device=torch.device("cuda"))
+    #     )
         #model(x["input_ids"].to(torch.device("cuda")), hugging_face_mask=x["hugging_face_mask"])
 
 
