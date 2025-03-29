@@ -46,6 +46,5 @@ class BidirectionalTransformer(nn.Module):
 
     def train_forward(self, x, hugging_face_mask=None):
         hidden_state = self.forward(x, hugging_face_mask)
-        output_tokens = self._output_linear(hidden_state)  # output_tokens has shape [masked_tokens, vocab_size]
-        output_tokens = nn.functional.log_softmax(output_tokens, dim=-1)
-        return output_tokens
+        output_logits = self._output_linear(hidden_state)  # output_logits has shape [batch_size, masked_tokens, vocab_size]
+        return output_logits
