@@ -6,7 +6,7 @@ from backend.transformer.bidirectional_transformer import BidirectionalTransform
 from backend.embedding_system.snippet_bounds import SnippetBounds
 from backend.embedding_system.db_crud import DBCrud
 
-
+# TODO select, insert and delete should be called using Thread on the higher level
 
 class EmbeddingSystem:
     _tokenizer: RobertaTokenizerFast = None
