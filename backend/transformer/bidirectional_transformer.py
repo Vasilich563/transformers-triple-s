@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from encoder import Encoder
-from positional_encoding import PositionalEncoding
+from backend.transformer.encoder import Encoder
+from backend.transformer.positional_encoding import PositionalEncoding
 
 
 def make_mask(hugging_face_mask, device, dtype):

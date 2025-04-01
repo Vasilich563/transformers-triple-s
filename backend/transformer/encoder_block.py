@@ -1,6 +1,6 @@
 from torch import nn
-from multi_head_attention import MultiHeadAttention
-from feed_forward_network import FeedForwardNetwork
+from backend.transformer.multi_head_attention import MultiHeadAttention
+from backend.transformer.feed_forward_network import FeedForwardNetwork
 
 
 class EncoderBlock(nn.Module):

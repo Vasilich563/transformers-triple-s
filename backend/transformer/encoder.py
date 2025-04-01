@@ -1,6 +1,5 @@
-import torch
 from torch import nn
-from encoder_block import EncoderBlock
+from backend.transformer.encoder_block import EncoderBlock
 
 
 class Encoder(nn.Module):
