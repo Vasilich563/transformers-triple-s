@@ -13,28 +13,28 @@ class CrawlerHandler(FileSystemEventHandler):
         # TODO modify = delete old + create new
         # TODO move = (delete src + delete dest) + create dest
 
-    async def on_created(self, event: FileCreatedEvent):
+    def on_created(self, event: FileCreatedEvent):
         if not event.is_directory:
             print(self.i, "on_created", event.src_path, event.dest_path)
             self.i += 1
 
-    async def on_deleted(self, event: FileDeletedEvent):
+    def on_deleted(self, event: FileDeletedEvent):
         if not event.is_directory:
             print(self.i, "on_deleted", event.src_path, event.dest_path)
             self.i += 1
 
-    async def on_modified(self, event: FileModifiedEvent):
+    def on_modified(self, event: FileModifiedEvent):
         if not event.is_directory:
             print(self.i, "on_modified", event.src_path, event.dest_path)
             self.i += 1
 
-    async def on_moved(self, event: FileMovedEvent):
+    def on_moved(self, event: FileMovedEvent):
         if not event.is_directory:
             print(self.i, "on_moved", event.src_path, event.dest_path)
             self.i += 1
 
 
-async def main():
+def main():
     handler = CrawlerHandler()
     observer = Observer()
     observer.schedule(handler, path="/home/yackub/PycharmProjects/Diploma/temp", recursive=True)
@@ -47,8 +47,7 @@ async def main():
             observer.stop()
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
 
 
 

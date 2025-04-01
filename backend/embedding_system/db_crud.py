@@ -1,7 +1,7 @@
 import enum
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
-from make_db import LEVEL_TABLE_NAME_PREFIX, SCHEMA_NAME, EMBEDDING_DIM
+from sqlalchemy import Engine
+from backend.embedding_system.make_db import LEVEL_TABLE_NAME_PREFIX, SCHEMA_NAME, EMBEDDING_DIM
 
 
 class SelectIndexes(enum.Enum):
@@ -46,14 +46,14 @@ class DBCrud:
     """
 
 
-    def __init__(self, db_engine: AsyncEngine):
-        self._db_engine: AsyncEngine = db_engine
+    def __init__(self, db_engine: Engine):
+        self._db_engine: Engine = db_engine
         self._level1_name = f"{LEVEL_TABLE_NAME_PREFIX}1"
         self._level2_name = f"{LEVEL_TABLE_NAME_PREFIX}2"
         self._level3_name = f"{LEVEL_TABLE_NAME_PREFIX}3"
 
 
-    async def write_level1_snippet_rows(self, list_of_rows):
+    def write_level1_snippet_rows(self, list_of_rows):
         """
         :param list_of_rows: List[
             Dict[
@@ -66,13 +66,13 @@ class DBCrud:
         ]
         :return: None
         """
-        async with self._db_engine.begin() as connection:
-            await connection.execute(
+        with self._db_engine.begin() as connection:
+            connection.execute(
                 text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level1_name)),
                 list_of_rows
             )
 
-    async def write_level2_snippet_rows(self, list_of_rows):
+    def write_level2_snippet_rows(self, list_of_rows):
         """
         :param list_of_rows: List[
             Dict[
@@ -85,13 +85,13 @@ class DBCrud:
         ]
         :return: None
         """
-        async with self._db_engine.begin() as connection:
-            await connection.execute(
+        with self._db_engine.begin() as connection:
+            connection.execute(
                 text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level2_name)),
                 list_of_rows
             )
 
-    async def write_level3_snippet_rows(self, list_of_rows):
+    def write_level3_snippet_rows(self, list_of_rows):
         """
         :param list_of_rows: List[
             Dict[
@@ -104,23 +104,23 @@ class DBCrud:
         ]
         :return: None
         """
-        async with self._db_engine.begin() as connection:
-            await connection.execute(
+        with self._db_engine.begin() as connection:
+            connection.execute(
                 text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level3_name)),
                 list_of_rows
             )
 
-    async def _select_by_name(self, connection, level_table_name, document_name, limit):
+    def _select_by_name(self, connection, level_table_name, document_name, limit):
         return (
-            await connection.execute(
+            connection.execute(
                 text(self.__select_by_name_template.format(schema_name= SCHEMA_NAME, table_name=level_table_name)),
                 {"document_name": document_name, "limit": limit}
             ).all()
         )
 
-    async def _select_from_level_for_one_embedding(self, connection, level_table_name, query_embedding_list, limit):
+    def _select_from_level_for_one_embedding(self, connection, level_table_name, query_embedding_list, limit):
         return (
-            await connection.execute(
+            connection.execute(
                 text(
                     self.__select_by_embedding_template.format(
                         schema_name=SCHEMA_NAME, table_name=level_table_name, embedding_dim=EMBEDDING_DIM
@@ -130,57 +130,45 @@ class DBCrud:
             )
         ).all()
 
-    async def _select_from_level(self, connection, level_table_name, query_embedding_list, limit):
+    def _select_from_level(self, connection, level_table_name, query_embedding_list, limit):
         queries_results = []
         for i in range(len(query_embedding_list)):
             queries_results.extend(
-                await self._select_from_level_for_one_embedding(connection, level_table_name, query_embedding_list[i], limit)
+                self._select_from_level_for_one_embedding(connection, level_table_name, query_embedding_list[i], limit)
             )
         queries_results.sort(key=lambda x: x[SelectIndexes.cos_distance.value])
 
         return queries_results
 
-    async def select_from_level1(self, query_embedding_list, limit):
-        async with self._db_engine.begin() as connection:
-            queries_results = await self._select_from_level(connection, self._level1_name, query_embedding_list, limit)
+    def select_from_level1(self, query_embedding_list, limit):
+        with self._db_engine.begin() as connection:
+            queries_results = self._select_from_level(connection, self._level1_name, query_embedding_list, limit)
 
         return queries_results[:limit]
 
-    async def select_from_level2(self, query_embedding_list, limit):
-        async with self._db_engine.begin() as connection:
-            queries_results = await self._select_from_level(connection, self._level2_name, query_embedding_list, limit)
+    def select_from_level2(self, query_embedding_list, limit):
+        with self._db_engine.begin() as connection:
+            queries_results = self._select_from_level(connection, self._level2_name, query_embedding_list, limit)
 
         return queries_results[:limit]
 
-    async def select_from_level3(self, query_embedding_list, limit):
-        async with self._db_engine.begin() as connection:
-            queries_results = await self._select_from_level(connection, self._level3_name, query_embedding_list, limit)
+    def select_from_level3(self, query_embedding_list, limit):
+        with self._db_engine.begin() as connection:
+            queries_results = self._select_from_level(connection, self._level3_name, query_embedding_list, limit)
 
         return queries_results[:limit]
 
-    async def _delete_from_table(self, connection, table_name, document_path):
-        await connection.execute(
+    def _delete_from_table(self, connection, table_name, document_path):
+        connection.execute(
             text(self.__delete_template.format(schema_name=SCHEMA_NAME, table_name=table_name)),
             {"document_path": document_path}
         )
 
-    async def remove_from_level1(self, document_path):
-        async with self._db_engine.begin() as connection:
-            await self._delete_from_table(connection, self._level1_name, document_path)
-
-    async def remove_from_level2(self, document_path):
-        async with self._db_engine.begin() as connection:
-            await self._delete_from_table(connection, self._level2_name, document_path)
-
-    async def remove_from_level3(self, document_path):
-        async with self._db_engine.begin() as connection:
-            await self._delete_from_table(connection, self._level3_name, document_path)
-
-    async def remove_from_all_levels(self, document_path):
-        async with self._db_engine.begin() as connection:
-            await self._delete_from_table(connection, self._level1_name, document_path)
-            await self._delete_from_table(connection, self._level2_name, document_path)
-            await self._delete_from_table(connection, self._level3_name, document_path)
+    def remove_from_all_levels(self, document_path):
+        with self._db_engine.begin() as connection:
+            self._delete_from_table(connection, self._level1_name, document_path)
+            self._delete_from_table(connection, self._level2_name, document_path)
+            self._delete_from_table(connection, self._level3_name, document_path)
 
 
 

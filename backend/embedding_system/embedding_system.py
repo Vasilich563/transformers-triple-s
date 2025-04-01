@@ -95,13 +95,13 @@ class EmbeddingSystem:
             return list_of_rows
 
     @classmethod
-    async def index_new_text(cls, document_text, document_path):
+    def index_new_text(cls, document_text, document_path):
         text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
             document_text, cls._level_1_max_len, cls._level_1_stride, return_snippet_bounds=True
         )
         text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
         list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-        await cls._db_crud.write_level1_snippet_rows(list_of_rows_for_db)
+        cls._db_crud.write_level1_snippet_rows(list_of_rows_for_db)
 
         # if text is big enough to place it on the next level too
         if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_2_max_len, cls._level_1_max_len, cls._level_1_stride):
@@ -110,7 +110,7 @@ class EmbeddingSystem:
             )
             text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
             list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-            await cls._db_crud.write_level2_snippet_rows(list_of_rows_for_db)
+            cls._db_crud.write_level2_snippet_rows(list_of_rows_for_db)
 
             # if text is big enough to place it on the next level too
             if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_3_max_len, cls._level_2_max_len, cls._level_2_stride):
@@ -119,10 +119,10 @@ class EmbeddingSystem:
                 )
                 text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
                 list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-                await cls._db_crud.write_level3_snippet_rows(list_of_rows_for_db)
+                cls._db_crud.write_level3_snippet_rows(list_of_rows_for_db)
 
     @classmethod
-    async def handle_user_query(cls, query, limit=25):
+    def handle_user_query(cls, query, limit=25):
         level = 1
         input_ids, attention_mask = cls._tokenize_text(
             query, cls._level_1_max_len, cls._level_1_stride, return_snippet_bounds=False
@@ -142,21 +142,21 @@ class EmbeddingSystem:
 
         text_embedding_batch = cls._count_text_embeddings(input_ids, attention_mask, mean_across_batch=False)
         if level == 1:
-            result = await cls._db_crud.select_from_level1(text_embedding_batch, limit)
+            result = cls._db_crud.select_from_level1(text_embedding_batch, limit)
         elif level == 2:
-            result = await cls._db_crud.select_from_level2(text_embedding_batch, limit)
+            result = cls._db_crud.select_from_level2(text_embedding_batch, limit)
         else:
-            result = await cls._db_crud.select_from_level3(text_embedding_batch, limit)
+            result = cls._db_crud.select_from_level3(text_embedding_batch, limit)
         return result
 
     @classmethod
-    async def remove_document(cls, document_path):
-        await cls._db_crud.remove_from_all_levels(document_path)
+    def remove_document(cls, document_path):
+        cls._db_crud.remove_from_all_levels(document_path)
 
     @classmethod
-    async def update_document(cls, document_path, new_text):
-        await cls._db_crud.remove_from_all_levels(document_path)
-        await cls.index_new_text(new_text, document_path)
+    def update_document(cls, document_path, new_text):
+        cls._db_crud.remove_from_all_levels(document_path)
+        cls.index_new_text(new_text, document_path)
 
 
 
