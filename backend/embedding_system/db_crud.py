@@ -45,12 +45,6 @@ class DBCrud:
         DELETE FROM {schema_name}.{table_name} WHERE document_path = document_path
     """
 
-    __update_template = """
-        UPDATE {schema_name}.{table_name} 
-            SET document_path = :new_document_path, document_name = :new_document_name
-            WHERE document_path = :old_document_path 
-    """
-
 
     def __init__(self, db_engine: AsyncEngine):
         self._db_engine: AsyncEngine = db_engine
@@ -188,39 +182,5 @@ class DBCrud:
             await self._delete_from_table(connection, self._level2_name, document_path)
             await self._delete_from_table(connection, self._level3_name, document_path)
 
-    async def _change_document_path_in_table(self, connection, table_name, old_path, new_path, new_name):
-        await connection.execute(
-            text(self.__update_template.format(schema_name=SCHEMA_NAME, table_name=table_name)),
-            {"old_document_path": old_path, "new_document_path": new_path, "new_document_name": new_name}
-        )
 
-    async def change_document_path_level1(self, old_document_path, new_document_path, new_document_name):
-        async with self._db_engine.begin() as connection:
-            await self._change_document_path_in_table(
-                connection, self._level1_name, old_document_path, new_document_path, new_document_name
-            )
-
-    async def change_document_path_level2(self, old_document_path, new_document_path, new_document_name):
-        async with self._db_engine.begin() as connection:
-            await self._change_document_path_in_table(
-                connection, self._level2_name, old_document_path, new_document_path, new_document_name
-            )
-
-    async def change_document_path_level3(self, old_document_path, new_document_path, new_document_name):
-        async with self._db_engine.begin() as connection:
-            await self._change_document_path_in_table(
-                connection, self._level3_name, old_document_path, new_document_path, new_document_name
-            )
-
-    async def change_document_path_all_levels(self, old_document_path, new_document_path, new_document_name):
-        async with self._db_engine.begin() as connection:
-            await self._change_document_path_in_table(
-                connection, self._level1_name, old_document_path, new_document_path, new_document_name
-            )
-            await self._change_document_path_in_table(
-                connection, self._level2_name, old_document_path, new_document_path, new_document_name
-            )
-            await self._change_document_path_in_table(
-                connection, self._level3_name, old_document_path, new_document_path, new_document_name
-            )
 
