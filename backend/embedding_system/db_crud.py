@@ -2,6 +2,7 @@ import enum
 from sqlalchemy import text
 from sqlalchemy import Engine
 from backend.embedding_system.make_db import LEVEL_TABLE_NAME_PREFIX, SCHEMA_NAME, EMBEDDING_DIM
+from threading import Thread
 
 
 class SelectIndexes(enum.Enum):
@@ -67,10 +68,15 @@ class DBCrud:
         :return: None
         """
         with self._db_engine.begin() as connection:
-            connection.execute(
-                text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level1_name)),
-                list_of_rows
+            thread = Thread(
+                target=connection.execute,
+                args=(
+                    text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level1_name)),
+                    list_of_rows
+                ),
+                daemon=True
             )
+            thread.start()
 
     def write_level2_snippet_rows(self, list_of_rows):
         """
@@ -86,10 +92,15 @@ class DBCrud:
         :return: None
         """
         with self._db_engine.begin() as connection:
-            connection.execute(
-                text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level2_name)),
-                list_of_rows
+            thread = Thread(
+                target=connection.execute,
+                args=(
+                    text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level2_name)),
+                    list_of_rows
+                ),
+                daemon=True
             )
+            thread.start()
 
     def write_level3_snippet_rows(self, list_of_rows):
         """
@@ -105,10 +116,15 @@ class DBCrud:
         :return: None
         """
         with self._db_engine.begin() as connection:
-            connection.execute(
-                text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level3_name)),
-                list_of_rows
+            thread = Thread(
+                target=connection.execute,
+                args=(
+                    text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level3_name)),
+                    list_of_rows
+                ),
+                daemon=True
             )
+            thread.start()
 
     def _select_by_name(self, connection, level_table_name, document_name, limit):
         return (
@@ -166,9 +182,27 @@ class DBCrud:
 
     def remove_from_all_levels(self, document_path):
         with self._db_engine.begin() as connection:
-            self._delete_from_table(connection, self._level1_name, document_path)
-            self._delete_from_table(connection, self._level2_name, document_path)
-            self._delete_from_table(connection, self._level3_name, document_path)
+            l1_thread = Thread(
+                target=self._delete_from_table,
+                args=(connection, self._level1_name, document_path),
+                daemon=True
+            )
+            l1_thread.start()
+
+            l2_thread = Thread(
+                target=self._delete_from_table,
+                args=(connection, self._level2_name, document_path),
+                daemon=True
+            )
+            l2_thread.start()
+
+            l3_thread = Thread(
+                target=self._delete_from_table,
+                args=(connection, self._level3_name, document_path),
+                daemon=True
+            )
+            l3_thread.start()
+
 
 
 
