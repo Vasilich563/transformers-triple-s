@@ -2,6 +2,9 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileCreatedEvent, FileModifiedEvent, FileMovedEvent
 from backend.embedding_system.embedding_system import EmbeddingSystem
 from threading import Thread
+import PyPDF2
+import docx
+from bs4 import BeautifulSoup
 
 
 class CrawlerHandler(FileSystemEventHandler):
@@ -10,9 +13,9 @@ class CrawlerHandler(FileSystemEventHandler):
     def __init__(self):
         self.txt_postfix = ".txt"
         self.pdf_postfix = ".pdf"
-        self.doc_postfix = ".doc"
+        self.html_postfix = ".html"
         self.docx_postfix = ".docx"
-        self.postfixes = [self.txt_postfix, self.pdf_postfix, self.docx_postfix, self.doc_postfix]
+        self.postfixes = [self.txt_postfix, self.pdf_postfix, self.docx_postfix, self.html_postfix]
 
     @staticmethod
     def _extract_text_from_txt(path_to_file):
@@ -20,17 +23,43 @@ class CrawlerHandler(FileSystemEventHandler):
             text = fin.read()
         return text
 
+    @staticmethod
+    def _extract_text_from_pdf(path_to_file):
+        with open(path_to_file, 'rb') as fin:
+            pdfReader = PyPDF2.PdfReader(fin)
+            text = " ".join(
+                [page.extract_text() for page in pdfReader.pages]
+            )
+        return text
 
-    def _extract_text_from_pdf(self, path_to_file):
-        pass
+    @staticmethod
+    def _extract_text_from_html(path_to_file):
+        with open(path_to_file, 'r') as fin:
+            soup = BeautifulSoup(fin.read(), features="html.parser")
 
+            # kill all script and style elements
+            for script in soup(["script", "style"]):
+                script.extract()  # rip it out
 
-    def _extract_text_from_doc(self, path_to_file):
-        pass
+            # get text
+            text = soup.get_text()
 
+            # break into lines and remove leading and trailing space on each
+            lines = (line.strip() for line in text.splitlines())
+            # break multi-headlines into a line each
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            # drop blank lines
+            text = ' '.join(chunk for chunk in chunks if chunk)
 
-    def _extract_text_from_docx(self, path_to_file):
-        pass
+            return text
+
+    @staticmethod
+    def _extract_text_from_docx(path_to_file):
+        doc = docx.Document(path_to_file)
+        text = ' '.join(
+            [paragraph.text for paragraph in doc.paragraphs]
+        )
+        return text
 
 
     def _extract_text(self, path_to_file):
@@ -38,8 +67,8 @@ class CrawlerHandler(FileSystemEventHandler):
             return self._extract_text_from_txt(path_to_file)
         elif path_to_file.endswith(self.pdf_postfix):
             return self._extract_text_from_pdf(path_to_file)
-        elif path_to_file.endswith(self.doc_postfix):
-            return self._extract_text_from_doc(path_to_file)
+        elif path_to_file.endswith(self.html_postfix):
+            return self._extract_text_from_html(path_to_file)
         elif path_to_file.endswith(self.docx_postfix):
             return self._extract_text_from_docx(path_to_file)
         else:
