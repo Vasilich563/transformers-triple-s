@@ -1,4 +1,5 @@
 transformers
-sqlalchemy[async]
+sqlalchemy
 psycopg2-binary
 watchdog
+PyPDF2
