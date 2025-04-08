@@ -209,6 +209,14 @@ if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
     loader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn=mlm)
+    for i, x in enumerate(loader):
+        print(i, x)
+        break
+
+    for i, x in enumerate(loader):
+        print(i, x)
+        break
+
     # for x in loader:
     #     #print(make_mask(x["hugging_face_mask"], torch.float32).shape)
     #     model(

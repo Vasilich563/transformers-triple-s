@@ -1,13 +1,15 @@
 # import kagglehub
 #
-# # Download latest version
-# path = kagglehub.dataset_download("himonsarkar/openwebtext-dataset")
-#
-# print("Path to dataset files:", path)
+# Download latest version
+import kagglehub
+path = kagglehub.dataset_download("himonsarkar/openwebtext-dataset")
+
+print("Path to dataset files:", path)
 
 from datasets import load_dataset
 
-load_dataset("wikipedia", "20220301.en", trust_remote_code=True)
+wiki_dataset = load_dataset("wikipedia", "20220301.en", trust_remote_code=True)
+bookcorpus_dataset = load_dataset("bookcorpus/bookcorpus", trust_remote_code=True)
 
 # https://www.kaggle.com/datasets/himonsarkar/openwebtext-dataset?select=train_split.txt
 # https://huggingface.co/datasets/bookcorpus/bookcorpus
