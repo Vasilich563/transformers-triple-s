@@ -157,7 +157,7 @@ if __name__ == "__main__":
     dtype = torch.float32
 
     vocab_size = len(tokenizer.get_vocab())
-    max_len = 512
+    max_len = 256
     num_layers = 12
     d_model = 768
     num_attention_heads = 12

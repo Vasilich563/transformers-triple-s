@@ -51,7 +51,7 @@ class DBCrud:
         self._db_engine: Engine = db_engine
         self._level1_name = f"{LEVEL_TABLE_NAME_PREFIX}1"
         self._level2_name = f"{LEVEL_TABLE_NAME_PREFIX}2"
-        self._level3_name = f"{LEVEL_TABLE_NAME_PREFIX}3"
+        #self._level3_name = f"{LEVEL_TABLE_NAME_PREFIX}3"
 
 
     def write_level1_snippet_rows(self, list_of_rows):
@@ -102,29 +102,29 @@ class DBCrud:
             )
             thread.start()
 
-    def write_level3_snippet_rows(self, list_of_rows):
-        """
-        :param list_of_rows: List[
-            Dict[
-                "snippet_name": str,
-                "document_path": str,
-                "document_name": str,
-                "snippet": str,
-                "embedding": List[float]
-            ]
-        ]
-        :return: None
-        """
-        with self._db_engine.begin() as connection:
-            thread = Thread(
-                target=connection.execute,
-                args=(
-                    text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level3_name)),
-                    list_of_rows
-                ),
-                daemon=True
-            )
-            thread.start()
+    # def write_level3_snippet_rows(self, list_of_rows):
+    #     """
+    #     :param list_of_rows: List[
+    #         Dict[
+    #             "snippet_name": str,
+    #             "document_path": str,
+    #             "document_name": str,
+    #             "snippet": str,
+    #             "embedding": List[float]
+    #         ]
+    #     ]
+    #     :return: None
+    #     """
+    #     with self._db_engine.begin() as connection:
+    #         thread = Thread(
+    #             target=connection.execute,
+    #             args=(
+    #                 text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level3_name)),
+    #                 list_of_rows
+    #             ),
+    #             daemon=True
+    #         )
+    #         thread.start()
 
     def _select_by_name(self, connection, level_table_name, document_name, limit):
         return (
@@ -168,11 +168,11 @@ class DBCrud:
 
         return queries_results[:limit]
 
-    def select_from_level3(self, query_embedding_list, limit):
-        with self._db_engine.begin() as connection:
-            queries_results = self._select_from_level(connection, self._level3_name, query_embedding_list, limit)
-
-        return queries_results[:limit]
+    # def select_from_level3(self, query_embedding_list, limit):
+    #     with self._db_engine.begin() as connection:
+    #         queries_results = self._select_from_level(connection, self._level3_name, query_embedding_list, limit)
+    #
+    #     return queries_results[:limit]
 
     def _delete_from_table(self, connection, table_name, document_path):
         connection.execute(
@@ -196,12 +196,12 @@ class DBCrud:
             )
             l2_thread.start()
 
-            l3_thread = Thread(
-                target=self._delete_from_table,
-                args=(connection, self._level3_name, document_path),
-                daemon=True
-            )
-            l3_thread.start()
+            # l3_thread = Thread(
+            #     target=self._delete_from_table,
+            #     args=(connection, self._level3_name, document_path),
+            #     daemon=True
+            # )
+            # l3_thread.start()
 
 
 
