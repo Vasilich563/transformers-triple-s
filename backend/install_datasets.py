@@ -12,9 +12,13 @@ max_length = 256
 path = kagglehub.dataset_download("himonsarkar/openwebtext-dataset")
 
 print("Path to dataset files:", path)
-with open(path, 'r') as fin:
-    train_dataset_text = fin.read("train_split.txt")
-    val_dataset_text = fin.read("val_split.txt")
+with open(f"{path}/train_split.txt", 'r') as fin:
+    # train_dataset_text = fin.read("train_split.txt")
+    train_dataset_text = fin.read()
+
+with open(f"{path}/val_split.txt", 'r') as fin:
+    # train_dataset_text = fin.read("train_split.txt")
+    val_dataset_text = fin.read()
 
 
 wiki_dataset = load_dataset("wikipedia", "20220301.en", trust_remote_code=True)
