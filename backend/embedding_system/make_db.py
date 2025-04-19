@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
         actions_on_snippet_level(connection, 2)
 
-        actions_on_snippet_level(connection, 3)
+        #actions_on_snippet_level(connection, 3)
 
 
 
