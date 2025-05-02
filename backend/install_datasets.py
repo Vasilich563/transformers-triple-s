@@ -114,7 +114,7 @@ def join_jsons(path, last_index):
         json.dump(res, fout)
 
 
-def join_jsons_to_torch(path, last_index, device, dtype):
+def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
     dataset = []
     for i in range(1, last_index + 1):
         print(f"Reading {i}...")
@@ -123,10 +123,22 @@ def join_jsons_to_torch(path, last_index, device, dtype):
             print("Joining...")
             for obj in data:
                 dataset.append({
-                    "input_ids": torch.tensor(obj["input_ids"], dtype=dtype, device=device, requires_grad=False),
-                    "hugging_face_mask": torch.tensor(obj["hugging_face_mask"], dtype=dtype, device=device, requires_grad=False)
+                    "input_ids": torch.tensor(obj["input_ids"], dtype=ids_dtype, device=device, requires_grad=False),
+                    "hugging_face_mask": torch.tensor(obj["hugging_face_mask"], dtype=mask_dtype, device=device, requires_grad=False)
                 })
     print(f"Done, {len(dataset)} rows")
+
+    from torch.utils.data import DataLoader
+    from transformers.data.data_collator import DataCollatorForLanguageModeling
+    from transformers import RobertaTokenizerFast
+
+    tokenizer = RobertaTokenizerFast.from_pretrained("FacebookAI/roberta-large")
+    mlm_probability = 0.15
+    mlm = DataCollatorForLanguageModeling(tokenizer, mlm_probability=mlm_probability, return_tensors='pt')
+    loader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn=mlm)
+    for i, x in enumerate(loader):
+        print(i, x)
+        break
 
 
     # dataset = [
@@ -138,7 +150,7 @@ def join_jsons_to_torch(path, last_index, device, dtype):
 
 #join_datasets()
 #install_and_tokenize()
-join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122, torch.device("cpu"), torch.int32)
+join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122, torch.device("cpu"), torch.uint16, torch.int8)
 
 # https://www.kaggle.com/datasets/himonsarkar/openwebtext-dataset?select=train_split.txt
 # https://huggingface.co/datasets/bookcorpus/bookcorpus
