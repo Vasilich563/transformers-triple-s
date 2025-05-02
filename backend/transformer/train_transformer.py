@@ -1,4 +1,5 @@
 import csv
+from copy import deepcopy
 from datetime import datetime
 from threading import Thread
 from random import shuffle
@@ -88,6 +89,9 @@ def train(
     val_batches_amount = get_batches_amount(len(val_dataloader.dataset), val_dataloader.batch_size)
     model.train()
     step = 0
+
+    best_val_loss = torch.inf
+    best_model_weights = deepcopy(model.state_dict())
     while True:
         epoch_start = datetime.now()
         train_running_loss, step, end_training = train_step(
@@ -100,17 +104,20 @@ def train(
             with torch.no_grad():
                 model.eval()
                 val_running_loss = validation_step(model, loss_function, val_dataloader, val_batches_amount)
+                if val_running_loss < best_val_loss:
+                    best_val_loss = val_running_loss
+                    best_model_weights = deepcopy(model.state_dict())
                 model.train()
 
             train_losses.append(train_running_loss)
             val_losses.append(val_running_loss)
 
             print(f"\tStep is ended in {datetime.now() - epoch_start}\n\tTrain loss:\t{train_running_loss}\n\tValidation loss: {val_running_loss}")
-            save_model_daemon(model, path_to_save_models, step)
+            save_model_daemon(model, path_to_save_models, step)  # TODO save checkpoint
 
         if end_training:
             print(f"Time spent on train: {datetime.now() - train_start}")
-            return train_losses, val_losses
+            return train_losses, val_losses, best_model_weights
 
 
 def save_losses(train_losses, validation_losses, filename, save_period):
@@ -171,7 +178,7 @@ if __name__ == "__main__":
 
     batch_size = 4096
     total_steps = 1048576
-    warmup_step = 49152
+    warmup_step = 24576
     weight_decay = 0.01
     eps = 1e-6
     beta1 = 0.9
