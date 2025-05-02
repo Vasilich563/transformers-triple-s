@@ -57,15 +57,16 @@ def install_and_tokenize():
 
     #path = kagglehub.dataset_download("himonsarkar/openwebtext-dataset")
 
-    path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/openwebtext-dataset"
+    #path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/openwebtext-dataset"
+    path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/openwebtext-dataset-2"
 
     print("Path to dataset files:", path)
     # with open(f"{path}/train_split.txt", 'r', encoding='utf-8') as fin:
     #     train_dataset_text = fin.read()
 
     print("Train dataset")
-    on_file(f"{path}/train_split.txt", tokenizer, read_size, max_length, "./new_datasets/train/")
-    on_file(f"{path}/val_split.txt", tokenizer, read_size, max_length, "./new_datasets/val/")
+    on_file(f"{path}/train_split.txt", tokenizer, read_size, max_length, "./new_datasets-2/train/")
+    on_file(f"{path}/val_split.txt", tokenizer, read_size, max_length, "./new_datasets-2/val/")
 
 
 
@@ -121,11 +122,12 @@ def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
         with open(f"{path}/part{i}.json", 'r') as fin:
             data = json.load(fin)
             print("Joining...")
-            for obj in data:
+            for i in range(len(data)):
                 dataset.append({
-                    "input_ids": torch.tensor(obj["input_ids"], dtype=ids_dtype, device=device, requires_grad=False),
-                    "hugging_face_mask": torch.tensor(obj["hugging_face_mask"], dtype=mask_dtype, device=device, requires_grad=False)
+                    "input_ids": torch.tensor(data[i]["input_ids"], dtype=ids_dtype, device=device, requires_grad=False),
+                    "hugging_face_mask": torch.tensor(data[i]["hugging_face_mask"], dtype=mask_dtype, device=device, requires_grad=False)
                 })
+            del data
     print(f"Done, {len(dataset)} rows")
 
     from torch.utils.data import DataLoader
@@ -149,8 +151,8 @@ def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
 
 
 #join_datasets()
-#install_and_tokenize()
-join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122, torch.device("cpu"), torch.uint16, torch.int8)
+install_and_tokenize()
+#join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122, torch.device("cpu"), torch.uint16, torch.int8)
 
 # https://www.kaggle.com/datasets/himonsarkar/openwebtext-dataset?select=train_split.txt
 # https://huggingface.co/datasets/bookcorpus/bookcorpus
