@@ -94,6 +94,15 @@ class EmbeddingSystem:
             })
             return list_of_rows
 
+    @staticmethod
+    def _prepare_row_for_catalog(document_text, document_path, snippet_bounds: List[SnippetBounds]):
+        document_name = pathlib.Path(document_path).stem
+        return {
+            "document_path": document_path,
+            "document_name": document_name,
+            "snippet": document_text[snippet_bounds[0].snippet_start_index: snippet_bounds[0].snippet_end_index]
+        }
+
     @classmethod
     def index_new_text(cls, document_text, document_path):
         text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
@@ -102,6 +111,8 @@ class EmbeddingSystem:
         text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
         list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
         cls._db_crud.write_level1_snippet_rows(list_of_rows_for_db)
+
+        cls._db_crud.write_catalog_row(cls._prepare_row_for_catalog(document_text, document_path, snippet_bounds))
 
         # if text is big enough to place it on the next level too
         if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_2_max_len, cls._level_1_max_len, cls._level_1_stride):
@@ -121,8 +132,15 @@ class EmbeddingSystem:
             #     list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
             #     cls._db_crud.write_level3_snippet_rows(list_of_rows_for_db)
 
+
     @classmethod
-    def handle_user_query(cls, query, limit=25):
+    def handle_search_by_name(cls, document_name, limit, exactly_flag):
+        return cls._db_crud.select_by_name(document_name, limit, exactly_flag)
+
+    @classmethod
+    def handle_user_query(cls, query, search_by_name_flag, exactly_flag, limit=25):
+        if search_by_name_flag:
+            return cls.handle_search_by_name(query, limit, exactly_flag)
         level = 1
         input_ids, attention_mask = cls._tokenize_text(
             query, cls._level_1_max_len, cls._level_1_stride, return_snippet_bounds=False
