@@ -164,7 +164,7 @@ class DBCrud:
     #         )
     #         thread.start()
 
-    # TODO search by name
+
     # TODO select limit in window (limited limit)
     # TODO перенос в наборе текста
 
