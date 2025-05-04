@@ -138,7 +138,7 @@ class EmbeddingSystem:
         return cls._db_crud.select_by_name(document_name, limit, exactly_flag)
 
     @classmethod
-    def handle_user_query(cls, query, search_by_name_flag, exactly_flag, limit=25):
+    def handle_user_query(cls, query, search_by_name_flag, exactly_flag, limit=100):
         if search_by_name_flag:
             return cls.handle_search_by_name(query, limit, exactly_flag)
         level = 1
