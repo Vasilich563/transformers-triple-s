@@ -39,7 +39,7 @@ def search_page():
         return main_page(limit, search_by_name_flag, exactly_flag)
 
     # TODO handle user query
-
+    # TODO handle page number
     return render_template(
         "SearchPage.html",
         user_query=escape(user_query),
