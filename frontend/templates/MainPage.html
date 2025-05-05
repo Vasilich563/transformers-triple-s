@@ -106,8 +106,10 @@
         }
 
         .search-box {
-            max-width: 60%;
+            max-width: 1200px;
             margin: 0 auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .search-input-group {
@@ -152,6 +154,48 @@
             background-color: #87CEEB;
         }
 
+        .advanced-options {
+            margin-top: 0.01rem;
+            padding: 0.5rem;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+
+        .advanced-options h3 {
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+            color: #555;
+            text-align: left;
+        }
+
+        .filter-group {
+            display: inline;
+            margin-bottom: 0.5rem;
+        }
+
+        .filter-group label {
+            width: 100%;
+            margin-bottom: 0.5rem;
+            margin-right: 0.5rem;
+            font-weight: 500;
+            color: #555;
+            text-align: left;
+        }
+
+        .filter-input {
+            width: 13%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-right: 3rem;
+        }
+
+        .filter-checkbox {
+            margin-right: 0.5rem;
+        }
+
 
         /* Footer Styles */
         footer {
@@ -169,11 +213,11 @@
 <body>
     <header>
         <div class="header-container">
-            <a href="MainPage.html" class="logo">Transformers<span>Triple-S</span></a>
+            <a href={{url_for_main_page}} class="logo">Transformers<span>Triple-S</span></a>
             <nav>
                 <ul>
 <!--                    <li><a href="SearchPage.html">Search</a></li>-->
-                    <li><a href="AboutPage.html">About</a></li>
+                    <li><a href={{url_for_about_page}}>About</a></li>
                 </ul>
             </nav>
         </div>
@@ -184,11 +228,25 @@
             <h1>Search with pleasure using <a class="logo-h1">Transformers<span>Triple-S</span></a></h1>
             <p>Semantic search system powered by transformer architecture</p>
             <div class="search-box">
-                <form action="#" method="get">
+                <form action={{url_for_search_page}} method="post">
                     <div class="search-input-group">
                         <textarea id="user-query" name="user-query" rows=1 maxlength=4096 class="search-input" placeholder="Enter your search terms..." autocomplete="off" autofocus></textarea>
                         <button type="submit" class="search-button">Search</button>
                     </div>
+                    <div class="advanced-options">
+                        <h3>Search Options</h3>
+                        <div class="filter-group">
+                            <label for="limit"> Maximal amount of documents to return:</label>
+                            <input class="filter-input" type="number" id="limit" name="limit" max="999" min="0" placeholder="Input number..." value={{limit}}>
+
+                            <label for="search_by_name_flag" style="margin-right: 3rem;">
+                                <input type="checkbox" class="filter-checkbox" id="search_by_name_flag" name="search_by_name_flag" {% if search_by_name_flag %} checked {% endif %}> Search using document name
+                            </label>
+                            <label for="exactly_flag" style="margin-right: 3rem;">
+                                <input type="checkbox" class="filter-checkbox" id="exactly_flag" name="exactly_flag" {% if exactly_flag %} checked {% endif %}> Exact name match
+                            </label>
+                        </div>
+                     </div>
                 </form>
             </div>
         </div>
