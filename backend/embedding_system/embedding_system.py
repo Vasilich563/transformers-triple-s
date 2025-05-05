@@ -19,8 +19,8 @@ class EmbeddingSystem:
     _level_2_max_len = 64
     _level_2_stride = 32
 
-    _level_3_max_len = 256
-    _level_3_stride = 128
+    # _level_3_max_len = 256
+    # _level_3_stride = 128
 
     @classmethod
     def class_init(cls, tokenizer, embedding_model, db_crud: DBCrud):
@@ -94,6 +94,15 @@ class EmbeddingSystem:
             })
             return list_of_rows
 
+    @staticmethod
+    def _prepare_row_for_catalog(document_text, document_path, snippet_bounds: List[SnippetBounds]):
+        document_name = pathlib.Path(document_path).stem
+        return {
+            "document_path": document_path,
+            "document_name": document_name,
+            "snippet": document_text[snippet_bounds[0].snippet_start_index: snippet_bounds[0].snippet_end_index]
+        }
+
     @classmethod
     def index_new_text(cls, document_text, document_path):
         text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
@@ -102,6 +111,8 @@ class EmbeddingSystem:
         text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
         list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
         cls._db_crud.write_level1_snippet_rows(list_of_rows_for_db)
+
+        cls._db_crud.write_catalog_row(cls._prepare_row_for_catalog(document_text, document_path, snippet_bounds))
 
         # if text is big enough to place it on the next level too
         if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_2_max_len, cls._level_1_max_len, cls._level_1_stride):
@@ -112,17 +123,24 @@ class EmbeddingSystem:
             list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
             cls._db_crud.write_level2_snippet_rows(list_of_rows_for_db)
 
-            # if text is big enough to place it on the next level too
-            if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_3_max_len, cls._level_2_max_len, cls._level_2_stride):
-                text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
-                    document_text, cls._level_3_max_len, cls._level_3_stride, return_snippet_bounds=True
-                )
-                text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
-                list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-                cls._db_crud.write_level3_snippet_rows(list_of_rows_for_db)
+            # # if text is big enough to place it on the next level too
+            # if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_3_max_len, cls._level_2_max_len, cls._level_2_stride):
+            #     text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
+            #         document_text, cls._level_3_max_len, cls._level_3_stride, return_snippet_bounds=True
+            #     )
+            #     text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
+            #     list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
+            #     cls._db_crud.write_level3_snippet_rows(list_of_rows_for_db)
+
 
     @classmethod
-    def handle_user_query(cls, query, limit=25):
+    def handle_search_by_name(cls, document_name, limit, exactly_flag):
+        return cls._db_crud.select_by_name(document_name, limit, exactly_flag)
+
+    @classmethod
+    def handle_user_query(cls, query, search_by_name_flag, exactly_flag, limit=100):
+        if search_by_name_flag:
+            return cls.handle_search_by_name(query, limit, exactly_flag)
         level = 1
         input_ids, attention_mask = cls._tokenize_text(
             query, cls._level_1_max_len, cls._level_1_stride, return_snippet_bounds=False
@@ -134,19 +152,19 @@ class EmbeddingSystem:
                 query, cls._level_2_max_len, cls._level_2_stride, return_snippet_bounds=False
             )
             # if query is big the next level is used to find snippet
-            if input_ids.shape[0] > cls._windows_before_next_level(cls._level_3_max_len, cls._level_2_max_len, cls._level_2_stride):
-                level = 3
-                input_ids, attention_mask = cls._tokenize_text(
-                    query, cls._level_3_max_len, cls._level_3_stride, return_snippet_bounds=False
-                )
+            # if input_ids.shape[0] > cls._windows_before_next_level(cls._level_3_max_len, cls._level_2_max_len, cls._level_2_stride):
+            #     level = 3
+            #     input_ids, attention_mask = cls._tokenize_text(
+            #         query, cls._level_3_max_len, cls._level_3_stride, return_snippet_bounds=False
+            #     )
 
         text_embedding_batch = cls._count_text_embeddings(input_ids, attention_mask, mean_across_batch=False)
         if level == 1:
             result = cls._db_crud.select_from_level1(text_embedding_batch, limit)
         elif level == 2:
             result = cls._db_crud.select_from_level2(text_embedding_batch, limit)
-        else:
-            result = cls._db_crud.select_from_level3(text_embedding_batch, limit)
+        #else:
+        #    result = cls._db_crud.select_from_level3(text_embedding_batch, limit)
         return result
 
     @classmethod

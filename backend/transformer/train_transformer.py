@@ -1,4 +1,5 @@
 import csv
+from copy import deepcopy
 from datetime import datetime
 from threading import Thread
 from random import shuffle
@@ -9,8 +10,9 @@ from bidirectional_transformer import BidirectionalTransformer
 from transformers import RobertaTokenizerFast, DataCollatorForLanguageModeling
 
 
-def train_step(model, optimizer, schedule, loss_function, dataloader, batches_amount, step, warmup_step, total_steps):
+def train_step(model, optimizer, schedule, loss_function, dataloader, step, warmup_step, total_steps):
     running_loss = 0
+    step_before_start = step
     for data in dataloader:
         optimizer.zero_grad(set_to_none=True)
         x_batch = data["input_ids"]
@@ -30,12 +32,12 @@ def train_step(model, optimizer, schedule, loss_function, dataloader, batches_am
         running_loss += loss.detach().cpu().item()
         end_train = (step == total_steps)
         if end_train:
-            running_loss = running_loss / batches_amount
+            running_loss = running_loss / (step - step_before_start)
             return running_loss, step, True  # loss, step, end_training
         if step % warmup_step == 0:
             schedule.step()
 
-    running_loss = running_loss / batches_amount
+    running_loss = running_loss / (step - step_before_start)
     return running_loss, step, False  # loss, step, end_training
 
 
@@ -66,10 +68,23 @@ def get_batches_amount(dataset_size, batch_size):
         return int(dataset_size / batch_size) + 1
 
 
-def save_model_daemon(model, path_to_save_models, epoch):
+def save_checkpoint_daemon(
+    model, optimizer, schedule, best_weights, best_val_loss, step, path_to_save_checkpoints, checkpoint
+):
+    checkpoint = {
+        "step": step,
+        "current_weights": deepcopy(model.state_dict()),
+        "best_weights": best_weights,
+        "best_val_loss": best_val_loss,
+        "optimizer": deepcopy(optimizer.state_dict()),
+        "lr_decay_schedule": deepcopy(schedule.state_dict())
+    }
     save_model_daemon = Thread(
         target=torch.save,
-        args=(model.state_dict(), f"{path_to_save_models}/after_epoch{epoch}.pt"),
+        args=(
+            checkpoint,
+            f"{path_to_save_checkpoints}/checkpoint{checkpoint}.pth"
+        ),
         daemon=True
     )
     save_model_daemon.start()
@@ -78,39 +93,46 @@ def save_model_daemon(model, path_to_save_models, epoch):
 def train(
     model: torch.nn.Module, optimizer: torch.optim.Optimizer, schedule, loss_function,
     train_dataloader: torch.utils.data.DataLoader, val_dataloader: torch.utils.data.DataLoader,
-    warmup_step, total_steps, save_period, path_to_save_models
+    warmup_step, total_steps, path_to_save_models
 ):
     train_start = datetime.now()
     print("Start training")
     train_losses = []
     val_losses = []
-    train_batches_amount = get_batches_amount(len(train_dataloader.dataset), train_dataloader.batch_size)
     val_batches_amount = get_batches_amount(len(val_dataloader.dataset), val_dataloader.batch_size)
     model.train()
     step = 0
+
+    best_val_loss = torch.inf
+    best_model_weights = deepcopy(model.state_dict())
+    checkpoint = 1
     while True:
         epoch_start = datetime.now()
         train_running_loss, step, end_training = train_step(
-            model, optimizer, schedule, loss_function, train_dataloader, train_batches_amount, step, warmup_step, total_steps
+            model, optimizer, schedule, loss_function, train_dataloader, step, warmup_step, total_steps
         )
 
-        if step % save_period == 0:
-            print(f"Epoch {step + 1}/{total_steps}")
+        print(f"Checkpoint {checkpoint}")
 
-            with torch.no_grad():
-                model.eval()
-                val_running_loss = validation_step(model, loss_function, val_dataloader, val_batches_amount)
-                model.train()
+        with torch.no_grad():
+            model.eval()
+            val_running_loss = validation_step(model, loss_function, val_dataloader, val_batches_amount)
+            if val_running_loss < best_val_loss:
+                best_val_loss = val_running_loss
+                best_model_weights = deepcopy(model.state_dict())
+            model.train()
 
-            train_losses.append(train_running_loss)
-            val_losses.append(val_running_loss)
+        train_losses.append(train_running_loss)
+        val_losses.append(val_running_loss)
 
-            print(f"\tStep is ended in {datetime.now() - epoch_start}\n\tTrain loss:\t{train_running_loss}\n\tValidation loss: {val_running_loss}")
-            save_model_daemon(model, path_to_save_models, step)
+        print(f"\tStep is ended in {datetime.now() - epoch_start}\n\tTrain loss:\t{train_running_loss}\n\tValidation loss: {val_running_loss}")
+        save_checkpoint_daemon(model, optimizer, schedule, best_model_weights, best_val_loss, step, path_to_save_models, checkpoint)
 
         if end_training:
             print(f"Time spent on train: {datetime.now() - train_start}")
-            return train_losses, val_losses
+            return train_losses, val_losses, best_model_weights
+
+        checkpoint += 1
 
 
 def save_losses(train_losses, validation_losses, filename, save_period):
@@ -172,7 +194,7 @@ if __name__ == "__main__":
 
     batch_size = 4096
     total_steps = 1048576
-    warmup_step = 49152
+    warmup_step = 24576
     weight_decay = 0.01
     eps = 1e-6
     beta1 = 0.9
