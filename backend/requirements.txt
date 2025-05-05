@@ -5,3 +5,4 @@ watchdog
 PyPDF2
 python-docx
 beautifulsoup4
+Flask
