@@ -165,9 +165,6 @@ class DBCrud:
     #         thread.start()
 
 
-    # TODO select limit in window (limited limit)
-    # TODO перенос в наборе текста
-
     def write_catalog_row(self, row):
         """
         :param row: Dict[
