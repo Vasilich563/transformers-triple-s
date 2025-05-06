@@ -33,7 +33,7 @@ if __name__ == "__main__":
     db_engine = create_engine("postgresql://postgres:ValhalaWithZolinks@localhost:5432/postgres")
 
     with db_engine.begin() as connection:
-        connection.execute(text("""CREATE EXTENSION vector;"""))
+        connection.execute(text("""CREATE EXTENSION IF NOT EXISTS vector;"""))
 
         connection.execute(text(f"""CREATE SCHEMA IF NOT EXISTS {SCHEMA_NAME};"""))
 
