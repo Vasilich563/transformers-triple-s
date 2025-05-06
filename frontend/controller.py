@@ -7,6 +7,7 @@ from backend.process_db_results import process_db_select_results
 from backend.embedding_system.embedding_system import EmbeddingSystem
 from backend.transformer.bidirectional_transformer import BidirectionalTransformer
 from backend.embedding_system.db_crud import DBCrud
+from backend.crawler import observe_directory_daemon
 
 
 RESULTS_PER_PAGE = 3
@@ -31,7 +32,9 @@ db_engine = create_engine("postgresql://postgres:ValhalaWithZolinks@localhost:54
 db_crud = DBCrud(db_engine)
 EmbeddingSystem.class_init(tokenizer, embedding_model, db_crud)
 
-# TODO add crawler that checks given directory
+directory_to_check = "/home/yackub/PycharmProjects/Diploma/temp"
+observe_directory_daemon(directory_to_check)
+
 
 app = Flask(__name__)
 
@@ -87,7 +90,7 @@ def search_page():
         },
         {
             "document_name": "Third Search Result Example",
-            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf",
+            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf".replace(" ", "%20"),
             "snippet": "The description here shows how the page content relates to the search terms. Different search engines have different algorithms for selecting which part of the page to display in the snippet."
         },
         {
@@ -121,7 +124,7 @@ def search_page():
             "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
         }
     ]
-    # TODO %20 instead of whitespaces
+    # TODO get document is a GET request with path
     return render_template(
         "SearchPage.html",
         user_query=escape(user_query),
