@@ -22,7 +22,7 @@ class BidirectionalTransformer(nn.Module):
         padding_index=None
     ):
         super().__init__()
-
+        self._d_model = d_model
         self._encoder = Encoder(num_layers, d_model, num_attention_heads, d_ffn_hidden, dropout_p, device, dtype)
         self._embeddings = nn.Embedding(vocab_size, d_model, padding_idx=padding_index, device=device, dtype=dtype)
         self._positional_encoding = PositionalEncoding(d_model, dropout_p, max_len, device, dtype)
