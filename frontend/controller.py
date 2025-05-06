@@ -1,5 +1,5 @@
 import torch
-from flask import Flask, url_for, render_template, request
+from flask import Flask, url_for, render_template, request, send_file
 from markupsafe import escape
 from transformers import RobertaTokenizerFast
 from sqlalchemy import create_engine
@@ -80,49 +80,48 @@ def search_page():
     result_list = [
         {
             "document_name": "Example Search Result Title - This is what a result looks like",
-            "document_path": "/frontend/templates/nigga.html",
+            "document_path": "/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html",
+            "url_to_get_file": url_for('send_file', path_to_file="/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html"),
             "snippet": "This is a sample search result description. It typically contains a brief excerpt from the webpage that includes your search terms. The relevant words are often highlighted in bold."
         },
         {
-            "document_name": "Another Example Result With a Longer Title That Might Wrap to Multiple Lines",
-            "document_path": "https://www.youtube.com/watch?v=m7xIZecZt1U&ab_channel=IDHLEB",
-            "snippet": "Another example result snippet. Search engines try to display the most relevant portion of the page content that matches your query. This helps you determine if the result is what you're looking for."
-        },
-        {
             "document_name": "Third Search Result Example",
-            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf".replace(" ", "%20"),
+            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf",
+            "url_to_get_file": url_for('send_file', path_to_file="/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf".replace(" ", "%20")),
             "snippet": "The description here shows how the page content relates to the search terms. Different search engines have different algorithms for selecting which part of the page to display in the snippet."
         },
         {
             "document_name": "Video Result Example",
             "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx",
+            "url_to_get_file": url_for('send_file', path_to_file="/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx"),
             "snippet": "This would be a video result. Sometimes special rich snippets are displayed for different types of content like videos, recipes, or products."
         },
         {
             "document_name": "Final Example Search Result",
             "document_path": "/home/yackub/PycharmProjects/Diploma/temp/prihod.txt",
+            "url_to_get_file": url_for('send_file', path_to_file="/home/yackub/PycharmProjects/Diploma/temp/prihod.txt"),
             "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
         },
-        {
-            "document_name": "6",
-            "document_path": "https://www.finalexample.com/blog/post",
-            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        },
-        {
-            "document_name": "7",
-            "document_path": "https://www.finalexample.com/blog/post",
-            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        },
-        {
-            "document_name": "8",
-            "document_path": "https://www.finalexample.com/blog/post",
-            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        },
-        {
-            "document_name": "9",
-            "document_path": "https://www.finalexample.com/blog/post",
-            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        }
+        # {
+        #     "document_name": "6",
+        #     "document_path": "https://www.finalexample.com/blog/post",
+        #     "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        # },
+        # {
+        #     "document_name": "7",
+        #     "document_path": "https://www.finalexample.com/blog/post",
+        #     "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        # },
+        # {
+        #     "document_name": "8",
+        #     "document_path": "https://www.finalexample.com/blog/post",
+        #     "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        # },
+        # {
+        #     "document_name": "9",
+        #     "document_path": "https://www.finalexample.com/blog/post",
+        #     "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        # }
     ]
     # TODO get document is a GET request with path
     return render_template(
@@ -138,3 +137,11 @@ def search_page():
         results_per_page=RESULTS_PER_PAGE,
         page_index=0
     )
+
+
+@app.route("/transformers-triple-s/files/<path_to_file>", methods=["GET"])
+def send_file(path_to_file):
+    return "chep"
+    return send_file(path_to_file, mimetype="application/pdf")
+
+
