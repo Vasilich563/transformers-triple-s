@@ -1,11 +1,44 @@
+import torch
 from flask import Flask, url_for, render_template, request
 from markupsafe import escape
+from transformers import RobertaTokenizerFast
+from sqlalchemy import create_engine
+from backend.process_db_results import process_db_select_results
+from backend.embedding_system.embedding_system import EmbeddingSystem
+from backend.transformer.bidirectional_transformer import BidirectionalTransformer
+from backend.embedding_system.db_crud import DBCrud
 
+
+RESULTS_PER_PAGE = 3
+
+tokenizer = RobertaTokenizerFast.from_pretrained("FacebookAI/roberta-large")
+vocab_size = len(tokenizer.get_vocab())
+max_len = 256
+stride = 0
+num_layers = 12
+d_model = 768
+num_attention_heads = 12
+d_ffn_hidden = 3072
+dropout_p = 0.1
+padding_index = tokenizer.pad_token_type_id
+device = torch.device("cuda:0")
+dtype = torch.float32
+embedding_model = BidirectionalTransformer(
+    vocab_size, max_len, num_layers, d_model, num_attention_heads, d_ffn_hidden, dropout_p, device, dtype, padding_index
+)
+
+db_engine = create_engine("postgresql://postgres:ValhalaWithZolinks@localhost:5432/postgres")
+db_crud = DBCrud(db_engine)
+EmbeddingSystem.class_init(tokenizer, embedding_model, db_crud)
+
+# TODO add crawler that checks given directory
 
 app = Flask(__name__)
 
 
 
+
+@app.route("/", methods=["GET"])
 @app.route("/transformers-triple-s/", methods=["GET"])
 @app.route("/transformers-triple-s/main/", methods=["GET"])
 def main_page(limit=100, search_by_name_flag=False, exactly_flag=False):
@@ -27,7 +60,6 @@ def about_page():
 
 @app.route("/transformers-triple-s/search/", methods=["GET", "POST"])
 def search_page():
-    print(request.form)
     user_query = request.form.get("user-query").strip()
     limit = request.form.get("limit", int)
     search_by_name_flag = False if request.form.get("search_by_name_flag") is None else True
@@ -38,8 +70,58 @@ def search_page():
 
         return main_page(limit, search_by_name_flag, exactly_flag)
 
-    # TODO handle user query
-    # TODO handle page number
+    # result_list = process_db_select_results(
+    #     EmbeddingSystem.handle_user_query(user_query, search_by_name_flag, exactly_flag, limit)
+    # )
+
+    result_list = [
+        {
+            "document_name": "Example Search Result Title - This is what a result looks like",
+            "document_path": "/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html",
+            "snippet": "This is a sample search result description. It typically contains a brief excerpt from the webpage that includes your search terms. The relevant words are often highlighted in bold."
+        },
+        {
+            "document_name": "Another Example Result With a Longer Title That Might Wrap to Multiple Lines",
+            "document_path": "https://www.youtube.com/watch?v=m7xIZecZt1U&ab_channel=IDHLEB",
+            "snippet": "Another example result snippet. Search engines try to display the most relevant portion of the page content that matches your query. This helps you determine if the result is what you're looking for."
+        },
+        {
+            "document_name": "Third Search Result Example",
+            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf",
+            "snippet": "The description here shows how the page content relates to the search terms. Different search engines have different algorithms for selecting which part of the page to display in the snippet."
+        },
+        {
+            "document_name": "Video Result Example",
+            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx",
+            "snippet": "This would be a video result. Sometimes special rich snippets are displayed for different types of content like videos, recipes, or products."
+        },
+        {
+            "document_name": "Final Example Search Result",
+            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/prihod.txt",
+            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        },
+        {
+            "document_name": "6",
+            "document_path": "https://www.finalexample.com/blog/post",
+            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        },
+        {
+            "document_name": "7",
+            "document_path": "https://www.finalexample.com/blog/post",
+            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        },
+        {
+            "document_name": "8",
+            "document_path": "https://www.finalexample.com/blog/post",
+            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        },
+        {
+            "document_name": "9",
+            "document_path": "https://www.finalexample.com/blog/post",
+            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        }
+    ]
+    # TODO %20 instead of whitespaces
     return render_template(
         "SearchPage.html",
         user_query=escape(user_query),
@@ -48,5 +130,8 @@ def search_page():
         url_for_about_page=url_for('about_page'),
         limit=limit,
         search_by_name_flag=search_by_name_flag,
-        exactly_flag=exactly_flag
+        exactly_flag=exactly_flag,
+        result_list=result_list,
+        results_per_page=RESULTS_PER_PAGE,
+        page_index=0
     )
