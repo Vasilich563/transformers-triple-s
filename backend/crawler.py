@@ -139,10 +139,10 @@ class CrawlerHandler(FileSystemEventHandler):
                     moved_daemon.start()
 
 
-def main():
+def observe_directory(path):
     handler = CrawlerHandler()
     observer = Observer()
-    observer.schedule(handler, path="/home/yackub/PycharmProjects/Diploma/temp", recursive=True)
+    observer.schedule(handler, path=path, recursive=True)
     observer.start()
 
     while True:
@@ -151,8 +151,13 @@ def main():
         except Exception:
             observer.stop()
 
+def observe_directory_daemon(path):
+    daemon = Thread(target=observe_directory, args=(path,), daemon=True)
+    daemon.start()
+
+
 if __name__ == "__main__":
-    main()
+    observe_directory("/home/yackub/PycharmProjects/Diploma/temp")
 
 
 
