@@ -77,7 +77,7 @@ def search_page():
     result_list = [
         {
             "document_name": "Example Search Result Title - This is what a result looks like",
-            "document_path": "/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html",
+            "document_path": "/frontend/templates/nigga.html",
             "snippet": "This is a sample search result description. It typically contains a brief excerpt from the webpage that includes your search terms. The relevant words are often highlighted in bold."
         },
         {
