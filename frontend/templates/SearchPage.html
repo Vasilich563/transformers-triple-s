@@ -4,302 +4,339 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transformers Triple-S</title>
-    <style>
-        /* CSS Reset and Base Styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+        <script>
+            function changeResultsDisplay(pageIndex, resultsPerPage, resultTotalAmount) {
+                for (let i = 0; i < resultTotalAmount; i++) {
+                    itemID = "result_item".concat(i.toString());
+                    const resultItem = document.getElementById(itemID);
+                    if ((pageIndex * resultsPerPage) <= i && i < ((pageIndex + 1) * resultsPerPage)) {
+                        resultItem.style.display = "block";
+                    }
+                    else {
+                        resultItem.style.display = "none";
+                    }
+                }
+            }
 
-        body {
-            background-color: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
-        }
+            function onPageChanged(direction, pageIndex, resultsPerPage, resultTotalAmount) {
+                if (direction == "next") {pageIndex += 1;}
+                else if (direction == "prev") {pageIndex -= 1;}
 
-        /* Header Styles */
-        header {
-            background-color: #0ABAB5;
-            color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-        }
+                const nextPage = document.getElementById("NextPage");
+                if (((pageIndex + 1) * resultsPerPage) >= resultTotalAmount) {
+                    nextPage.onclick = function() {};
+                }
+                else {
+                    nextPage.onclick = function() {onPageChanged("next", pageIndex, resultsPerPage, resultTotalAmount);};
+                }
 
-        .header-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+                const prevPage = document.getElementById("PrevPage");
+                if (pageIndex == 0) {
+                    prevPage.onclick = function() {};
+                }
+                else {
+                    prevPage.onclick = function() {onPageChanged("prev", pageIndex, resultsPerPage, resultTotalAmount);};
+                }
 
-        .logo {
-            font-size: 1.8rem;
-            font-weight: bold;
-            text-decoration: none;
-            color: #003366;
-        }
+                document.getElementById("CurrPage").innerText = pageIndex + 1;
+                changeResultsDisplay(pageIndex, resultsPerPage, resultTotalAmount);
+            }
+        </script>
+        <style>
+            /* CSS Reset and Base Styles */
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
 
-        .logo span {
-            color: #fbbc05;
-        }
+            body {
+                background-color: #f5f5f5;
+                color: #333;
+                line-height: 1.6;
+            }
 
-        nav ul {
-            display: flex;
-            list-style: none;
-        }
+            /* Header Styles */
+            header {
+                background-color: #0ABAB5;
+                color: white;
+                padding: 1rem 2rem;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                position: sticky;
+                top: 0;
+            }
 
-        nav ul li {
-            margin-left: 1.5rem;
-        }
-
-        nav ul li a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            transition: opacity 0.3s;
-        }
-
-        nav ul li a:hover {
-            opacity: 0.8;
-        }
-
-        /* Main Content Styles */
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-        }
-
-        .search-section {
-            position: sticky;
-            top: 80px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .search-title {
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-            color: #0ABAB5;
-        }
-
-        .search-form {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .search-input-group {
-            display: flex;
-            margin-bottom: 0.5rem;
-        }
-
-        .search-input {
-            flex: 1;
-            padding: 0.8rem 1rem;
-            border: 1px solid #ddd;
-            border-radius: 4px 0 0 4px;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.3s;
-            resize: none;
-            cursor: text;
-            text-rendering: auto;
-            overflow: hidden;
-        }
-
-        .search-input:focus {
-            border-color: #0ABAB5;
-            field-sizing: content;
-        }
-
-        .search-button {
-            background-color: #0ABAB5;
-            color: white;
-            border: none;
-            padding: 0 1.5rem;
-            border-radius: 0 4px 4px 0;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            transition: background-color 0.3s;
-            overflow: hidden;
-            height: 47px;
-        }
-
-        .search-button:hover {
-            background-color: 	#87CEEB;
-        }
-
-        .advanced-options {
-            margin-top: 0.01rem;
-            padding: 0.5rem;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-            border: 1px solid #eee;
-        }
-
-        .advanced-options h3 {
-            font-size: 1rem;
-            margin-bottom: 0.8rem;
-            color: #555;
-        }
-
-        .filter-group {
-            display: inline;
-            margin-bottom: 0.5rem;
-        }
-
-        .filter-group label {
-            width: 40%;
-            margin-bottom: 0.5rem;
-            margin-right: 0.5rem;
-            font-weight: 500;
-            color: #555;
-        }
-
-        .filter-input {
-            width: 13%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            margin-right: 3rem;
-        }
-
-        .filter-checkbox {
-            margin-right: 0.5rem;
-        }
-
-        .results-section {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-        }
-
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #eee;
-        }
-
-        .results-count {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-
-
-        .result-item {
-            padding: 1.5rem 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .result-item:last-child {
-            border-bottom: none;
-        }
-
-        .result-title {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            color: #0ABAB5;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .result-title:hover {
-            text-decoration: underline;
-        }
-
-        .result-url {
-            color: #0d652d;
-            font-size: 0.9rem;
-            margin-bottom: 0.3rem;
-            display: block;
-        }
-
-        .result-snippet {
-            color: #555;
-            font-size: 0.95rem;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 2rem;
-            list-style: none;
-        }
-
-        .pagination li {
-            margin: 0 0.3rem;
-        }
-
-        .pagination a {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background-color: #f1f1f1;
-            color: #333;
-            text-decoration: none;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-
-        .pagination a:hover, .pagination .active a {
-            background-color: #0ABAB5;
-            color: white;
-        }
-
-        /* Footer Styles */
-        footer {
-            background-color: #f2f2f2;
-            padding: 1.5rem 2rem;
-            text-align: center;
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 2rem;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
             .header-container {
-                flex-direction: column;
-                text-align: center;
+                max-width: 1200px;
+                margin: 0 auto;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .logo {
+                font-size: 1.8rem;
+                font-weight: bold;
+                text-decoration: none;
+                color: #003366;
+            }
+
+            .logo span {
+                color: #fbbc05;
             }
 
             nav ul {
-                margin-top: 1rem;
-                justify-content: center;
+                display: flex;
+                list-style: none;
             }
 
             nav ul li {
-                margin: 0 0.7rem;
+                margin-left: 1.5rem;
             }
 
-            .search-input-group {
+            nav ul li a {
+                color: white;
+                text-decoration: none;
+                font-weight: 500;
+                transition: opacity 0.3s;
+            }
+
+            nav ul li a:hover {
+                opacity: 0.8;
+            }
+
+            /* Main Content Styles */
+            .container {
+                max-width: 1200px;
+                margin: 2rem auto;
+                padding: 0 2rem;
+            }
+
+            .search-section {
+                position: sticky;
+                top: 80px;
+                background-color: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .search-title {
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+                color: #0ABAB5;
+            }
+
+            .search-form {
+                display: flex;
                 flex-direction: column;
             }
 
-            .search-input {
-                border-radius: 4px;
+            .search-input-group {
+                display: flex;
                 margin-bottom: 0.5rem;
             }
 
-            .search-button {
-                border-radius: 4px;
-                padding: 0.8rem;
+            .search-input {
+                flex: 1;
+                padding: 0.8rem 1rem;
+                border: 1px solid #ddd;
+                border-radius: 4px 0 0 4px;
+                font-size: 16px;
+                outline: none;
+                transition: border-color 0.3s;
+                resize: none;
+                cursor: text;
+                text-rendering: auto;
+                overflow: hidden;
             }
-        }
+
+            .search-input:focus {
+                border-color: #0ABAB5;
+                field-sizing: content;
+            }
+
+            .search-button {
+                background-color: #0ABAB5;
+                color: white;
+                border: none;
+                padding: 0 1.5rem;
+                border-radius: 0 4px 4px 0;
+                cursor: pointer;
+                font-size: 1rem;
+                font-weight: 500;
+                transition: background-color 0.3s;
+                overflow: hidden;
+                height: 47px;
+            }
+
+            .search-button:hover {
+                background-color: 	#87CEEB;
+            }
+
+            .advanced-options {
+                margin-top: 0.01rem;
+                padding: 0.5rem;
+                background-color: #f9f9f9;
+                border-radius: 4px;
+                border: 1px solid #eee;
+            }
+
+            .advanced-options h3 {
+                font-size: 1rem;
+                margin-bottom: 0.8rem;
+                color: #555;
+            }
+
+            .filter-group {
+                display: inline;
+                margin-bottom: 0.5rem;
+            }
+
+            .filter-group label {
+                width: 40%;
+                margin-bottom: 0.5rem;
+                margin-right: 0.5rem;
+                font-weight: 500;
+                color: #555;
+            }
+
+            .filter-input {
+                width: 13%;
+                padding: 0.5rem;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 0.9rem;
+                margin-right: 3rem;
+            }
+
+            .filter-checkbox {
+                margin-right: 0.5rem;
+            }
+
+            .results-section {
+                background-color: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                padding: 2rem;
+            }
+
+            .results-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+                padding-bottom: 1rem;
+                border-bottom: 1px solid #eee;
+            }
+
+            .results-count {
+                color: #666;
+                font-size: 0.9rem;
+            }
+
+            .result-item {
+                padding: 1.5rem 0;
+                border-bottom: 1px solid #eee;
+            }
+
+            .result-item:last-child {
+                border-bottom: none;
+            }
+
+            .result-title {
+                font-size: 1.2rem;
+                margin-bottom: 0.5rem;
+                color: #0ABAB5;
+                text-decoration: none;
+                display: inline-block;
+            }
+
+            .result-title:hover {
+                text-decoration: underline;
+            }
+
+            .result-url {
+                color: #0d652d;
+                font-size: 0.9rem;
+                margin-bottom: 0.3rem;
+                display: block;
+            }
+
+            .result-snippet {
+                color: #555;
+                font-size: 0.95rem;
+            }
+
+            .pagination {
+                display: flex;
+                justify-content: center;
+                margin-top: 2rem;
+                list-style: none;
+            }
+
+            .pagination li {
+                cursor: pointer;
+                margin: 0 0.3rem;
+            }
+
+            .pagination a {
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                background-color: #f1f1f1;
+                color: #333;
+                text-decoration: none;
+                border-radius: 4px;
+                transition: background-color 0.3s;
+            }
+
+            .pagination a:hover, .pagination .active a {
+                background-color: #0ABAB5;
+                color: white;
+            }
+
+            /* Footer Styles */
+            footer {
+                background-color: #f2f2f2;
+                padding: 1.5rem 2rem;
+                text-align: center;
+                font-size: 0.9rem;
+                color: #666;
+                margin-top: 2rem;
+            }
+
+            /* Responsive Design */
+            @media (max-width: 768px) {
+                .header-container {
+                    flex-direction: column;
+                    text-align: center;
+                }
+
+                nav ul {
+                    margin-top: 1rem;
+                    justify-content: center;
+                }
+
+                nav ul li {
+                    margin: 0 0.7rem;
+                }
+
+                .search-input-group {
+                    flex-direction: column;
+                }
+
+                .search-input {
+                    border-radius: 4px;
+                    margin-bottom: 0.5rem;
+                }
+
+                .search-button {
+                    border-radius: 4px;
+                    padding: 0.8rem;
+                }
+            }
     </style>
 </head>
 <body>
@@ -328,7 +365,7 @@
                     <h3>Search Options</h3>
                     <div class="filter-group">
                         <label for="limit"> Maximal amount of documents to return:</label>
-                        <input class="filter-input" type="number" id="limit" name="limit" max="999" min="0" placeholder="Input number..." value={{limit}}>
+                        <input class="filter-input" type="number" id="limit" name="limit" max="1000" min="0" placeholder="Input number..." value={{limit}}>
 
                         <label style="margin-right: 3rem;">
                             <input type="checkbox" class="filter-checkbox" id="search_by_name_flag" name="search_by_name_flag" {% if search_by_name_flag %} checked {% endif %}> Search using document name
@@ -343,48 +380,39 @@
 
         <section class="results-section">
             <div class="results-header">
-                <div class="results-count">About 1,230,000 results</div>
+                <div class="results-count">{{result_list|length}} results.</div>
             </div>
 
-            <div class="result-item">
-                <a href="#" class="result-title">Example Search Result Title - This is what a result looks like</a>
-                <span class="result-url">https://www.example.com/search-result</span>
-                <p class="result-snippet">This is a sample search result description. It typically contains a brief excerpt from the webpage that includes your search terms. The relevant words are often highlighted in bold.</p>
-            </div>
-
-            <div class="result-item">
-                <a href="#" class="result-title">Another Example Result With a Longer Title That Might Wrap to Multiple Lines</a>
-                <span class="result-url">https://www.anotherexample.com/long-url-path</span>
-                <p class="result-snippet">Another example result snippet. Search engines try to display the most relevant portion of the page content that matches your query. This helps you determine if the result is what you're looking for.</p>
-            </div>
-
-            <div class="result-item">
-                <a href="#" class="result-title">Third Search Result Example</a>
-                <span class="result-url">https://www.thirdresult.com/specific-page</span>
-                <p class="result-snippet">The description here shows how the page content relates to the search terms. Different search engines have different algorithms for selecting which part of the page to display in the snippet.</p>
-            </div>
-
-            <div class="result-item">
-                <a href="#" class="result-title">Video Result Example</a>
-                <span class="result-url">https://www.videosite.com/watch/12345</span>
-                <p class="result-snippet">This would be a video result. Sometimes special rich snippets are displayed for different types of content like videos, recipes, or products.</p>
-            </div>
-
-            <div class="result-item">
-                <a href="#" class="result-title">Final Example Search Result</a>
-                <span class="result-url">https://www.finalexample.com/blog/post</span>
-                <p class="result-snippet">The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results.</p>
-            </div>
+            {% for result_item in result_list %}
+                {% if page_index * results_per_page <= loop.index0 and loop.index0 < (page_index + 1) * results_per_page %}
+                    <div style="display: block" class="result-item" id="result_item{{loop.index0}}">
+                        <a href={{result_item.document_path}} class="result-title">{{result_item.document_name}}</a>
+                        <span class="result-url">{{result_item.document_path}}</span>
+                        <p class="result-snippet">{{result_item.snippet}}</p>
+                    </div>
+                {% else %}
+                    <div style="display: none" class="result-item" id="result_item{{loop.index0}}">
+                        <a href={{result_item.document_path}} class="result-title">{{result_item.document_name}}</a>
+                        <span class="result-url">{{result_item.document_path}}</span>
+                        <p class="result-snippet">{{result_item.snippet}}</p>
+                    </div>
+                {% endif %}
+            {% endfor %}
 
 
             <ul class="pagination">
-                <li><a href="#">Prev &laquo;</a></li>
-                <li class="active"><a href="#">1</a></li>
-                <li><a href="#">2</a></li>
-                <li><a href="#">3</a></li>
-                <li><a href="#">4</a></li>
-                <li><a href="#">5</a></li>
-                <li><a href="#">Next &raquo;</a></li>
+                {% if page_index == 0 %}
+                    <li><a id="PrevPage" onclick="">Prev &laquo;</a></li>
+                {% else %}
+                    <li><a id="PrevPage" onclick="onPageChanged('prev', {{page_index}}, {{results_per_page}}, {{result_list|length}});">Prev &laquo;</a></li>
+                {% endif %}
+                <li class="active"><a id="CurrPage">{{page_index + 1}}</a></li>
+                {% if (page_index + 1) * results_per_page >= result_list|length %}
+                    <li><a id="NextPage" onclick="">Next &raquo;</a></li>
+                {% else %}
+                    <li><a id="NextPage" onclick="onPageChanged('next', {{page_index}}, {{results_per_page}}, {{result_list|length}});">Next &raquo;</a></li>
+                {% endif %}
+
             </ul>
         </section>
 
