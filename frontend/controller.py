@@ -5,7 +5,6 @@ from flask import Flask, url_for, render_template, request, send_file as flask_s
 from markupsafe import escape
 from transformers import RobertaTokenizerFast
 from sqlalchemy import create_engine
-from backend.process_db_results import process_db_select_results
 from backend.embedding_system.embedding_system import EmbeddingSystem
 from backend.transformer.bidirectional_transformer import BidirectionalTransformer
 from backend.embedding_system.db_crud import DBCrud
@@ -41,6 +40,18 @@ observe_directory_daemon(directory_to_check)
 app = Flask(__name__)
 
 
+def process_db_select_results(query_results):
+    results_to_show = []
+    for query_result_row in query_results:
+        results_to_show.append(
+            {
+                "document_name": query_result_row.document_name,
+                "document_path": query_result_row.document_path,
+                "url_to_get_file": url_for('send_file', path_to_file=parse.quote(query_result_row.document_path, safe='')),
+                "snippet": query_result_row.snippet
+            }
+        )
+    return results_to_show
 
 
 @app.route("/", methods=["GET"])
