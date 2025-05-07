@@ -400,7 +400,7 @@
                     </div>
                 {% else %}
                     <div style="display: none" class="result-item" id="result_item{{loop.index0}}">
-                        <a href={{result_item.document_path}} class="result-title">{{result_item.document_name}}</a>
+                        <a href={{result_item.url_to_get_file}} class="result-title">{{result_item.document_name}}</a>
                         <span class="result-url">{{result_item.document_path}}</span>
                         <p class="result-snippet">{{result_item.snippet}}</p>
                     </div>
