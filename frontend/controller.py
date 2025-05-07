@@ -1,5 +1,7 @@
+import urllib.parse as parse
+import os
 import torch
-from flask import Flask, url_for, render_template, request, send_file
+from flask import Flask, url_for, render_template, request, send_file as flask_send_file, abort
 from markupsafe import escape
 from transformers import RobertaTokenizerFast
 from sqlalchemy import create_engine
@@ -76,54 +78,61 @@ def search_page():
     # result_list = process_db_select_results(
     #     EmbeddingSystem.handle_user_query(user_query, search_by_name_flag, exactly_flag, limit)
     # )
-
     result_list = [
         {
             "document_name": "Example Search Result Title - This is what a result looks like",
             "document_path": "/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html",
-            "url_to_get_file": url_for('send_file', path_to_file="/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html"),
+            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html", safe='')),
             "snippet": "This is a sample search result description. It typically contains a brief excerpt from the webpage that includes your search terms. The relevant words are often highlighted in bold."
         },
         {
             "document_name": "Third Search Result Example",
             "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf",
-            "url_to_get_file": url_for('send_file', path_to_file="/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf".replace(" ", "%20")),
+            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf", safe='')),
             "snippet": "The description here shows how the page content relates to the search terms. Different search engines have different algorithms for selecting which part of the page to display in the snippet."
         },
         {
             "document_name": "Video Result Example",
             "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx",
-            "url_to_get_file": url_for('send_file', path_to_file="/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx"),
+            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx", safe='')),
             "snippet": "This would be a video result. Sometimes special rich snippets are displayed for different types of content like videos, recipes, or products."
         },
         {
             "document_name": "Final Example Search Result",
             "document_path": "/home/yackub/PycharmProjects/Diploma/temp/prihod.txt",
-            "url_to_get_file": url_for('send_file', path_to_file="/home/yackub/PycharmProjects/Diploma/temp/prihod.txt"),
+            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/temp/prihod.txt", safe='')),
             "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
         },
-        # {
-        #     "document_name": "6",
-        #     "document_path": "https://www.finalexample.com/blog/post",
-        #     "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        # },
-        # {
-        #     "document_name": "7",
-        #     "document_path": "https://www.finalexample.com/blog/post",
-        #     "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        # },
-        # {
-        #     "document_name": "8",
-        #     "document_path": "https://www.finalexample.com/blog/post",
-        #     "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        # },
+        {
+            "document_name": "Final Example Search Result",
+            "document_path": "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/requirements.txt",
+            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/requirements.txt", safe='')),
+            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        },
+        {
+            "document_name": "6",
+            "document_path": "C:/Users/amis-/PycharmProjects/semantic_search_system/frontend/templates/AboutPage.html",
+            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("C:/Users/amis-/PycharmProjects/semantic_search_system/frontend/templates/AboutPage.html",safe='')),
+            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        },
+        {
+            "document_name": "7",
+            "document_path": "C:/Users/amis-/PycharmProjects/semantic_search_system/refrences/CrossEntropyLoss --- PyTorch 2.6 Documentation.pdf",
+            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("C:/Users/amis-/PycharmProjects/semantic_search_system/refrences/CrossEntropyLoss --- PyTorch 2.6 Documentation.pdf", safe='')),
+            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        },
+        {
+            "document_name": "8",
+            "document_path": "C:/Users/amis-/Downloads/ddpg.docx",
+            "url_to_get_file": url_for('send_file', path_to_file=parse.quote(                "C:/Users/amis-/Downloads/ddpg.docx",                safe='')),
+            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+        },
         # {
         #     "document_name": "9",
         #     "document_path": "https://www.finalexample.com/blog/post",
         #     "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
         # }
     ]
-    # TODO get document is a GET request with path
     return render_template(
         "SearchPage.html",
         user_query=escape(user_query),
@@ -141,7 +150,11 @@ def search_page():
 
 @app.route("/transformers-triple-s/files/<path_to_file>", methods=["GET"])
 def send_file(path_to_file):
-    return "chep"
-    return send_file(path_to_file, mimetype="application/pdf")
+    path_to_file = parse.unquote(path_to_file)
+    if os.path.exists(path_to_file):
+        return flask_send_file(path_to_file)
+    else:
+        print(f"File {path_to_file} not founded")
+        abort(404)
 
 
