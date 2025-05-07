@@ -69,7 +69,7 @@ def get_batches_amount(dataset_size, batch_size):
 
 
 def save_checkpoint_daemon(
-    model, optimizer, schedule, best_weights, best_val_loss, step, path_to_save_checkpoints, checkpoint
+    model, optimizer, schedule, best_weights, best_val_loss, step, path_to_save_checkpoints, checkpoint_number
 ):
     checkpoint = {
         "step": step,
@@ -83,7 +83,7 @@ def save_checkpoint_daemon(
         target=torch.save,
         args=(
             checkpoint,
-            f"{path_to_save_checkpoints}/checkpoint{checkpoint}.pth"
+            f"{path_to_save_checkpoints}/checkpoint{checkpoint_number}.pth"
         ),
         daemon=True
     )
