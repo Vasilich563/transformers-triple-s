@@ -169,9 +169,9 @@ def change_order_of_files(path, last_index):
 #install_and_tokenize()
 
 # TODO 70 files
-#join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 52, torch.device("cpu"), torch.uint16, torch.int8)
+join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122, torch.device("cpu"), torch.uint16, torch.int8)
 #join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 1, torch.device("cpu"), torch.uint16, torch.int8)
-change_order_of_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122)
+#change_order_of_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122)
 
 
 # https://www.kaggle.com/datasets/himonsarkar/openwebtext-dataset?select=train_split.txt
