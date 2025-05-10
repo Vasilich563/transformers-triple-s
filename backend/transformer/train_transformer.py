@@ -14,14 +14,14 @@ from backend.transformer.bidirectional_transformer import BidirectionalTransform
 from transformers import RobertaTokenizerFast, DataCollatorForLanguageModeling
 
 
-def train_step(model, optimizer, schedule, loss_function, dataloader, step, warmup_step, total_steps):
+def train_step(model, optimizer, schedule, loss_function, dataloader, step, warmup_step, total_steps, model_device):
     running_loss = 0
     step_before_start = step
     for data in dataloader:
         optimizer.zero_grad(set_to_none=True)
-        x_batch = data["input_ids"]
-        mask_batch = data["hugging_face_mask"]
-        y_batch = data["labels"]
+        x_batch = data["input_ids"].to(model_device)
+        mask_batch = data["hugging_face_mask"].to(model_device)
+        y_batch = data["labels"].to(model_device)
         sample_logits = model.train_forward(x_batch, hugging_face_mask=mask_batch)  # TODO unpack x
 
         batch, seq_len, vocab_size = sample_logits.shape
@@ -45,12 +45,12 @@ def train_step(model, optimizer, schedule, loss_function, dataloader, step, warm
     return running_loss, step, False  # loss, step, end_training
 
 
-def validation_step(model, loss_function, dataloader, batches_amount):
+def validation_step(model, loss_function, dataloader, batches_amount, model_device):
     running_loss = 0
     for data in dataloader:
-        x_batch = data["input_ids"]
-        mask_batch = data["hugging_face_mask"]
-        y_batch = data["labels"]
+        x_batch = data["input_ids"].to(model_device)
+        mask_batch = data["hugging_face_mask"].to(model_device)
+        y_batch = data["labels"].to(model_device)
         sample_logits = model.train_forward(x_batch, hugging_face_mask=mask_batch)  # TODO unpack x
 
         batch, seq_len, vocab_size = sample_logits.shape
@@ -97,7 +97,7 @@ def save_checkpoint_daemon(
 def train(
     model: torch.nn.Module, optimizer: torch.optim.Optimizer, schedule, loss_function,
     train_dataloader: torch.utils.data.DataLoader, val_dataloader: torch.utils.data.DataLoader,
-    warmup_step, total_steps, path_to_save_checkpoints
+    warmup_step, total_steps, model_device, path_to_save_checkpoints,
 ):
     train_start = datetime.now()
     print("Start training")
@@ -113,14 +113,14 @@ def train(
     while True:
         epoch_start = datetime.now()
         train_running_loss, step, end_training = train_step(
-            model, optimizer, schedule, loss_function, train_dataloader, step, warmup_step, total_steps
+            model, optimizer, schedule, loss_function, train_dataloader, step, warmup_step, total_steps, model_device
         )
 
         print(f"Checkpoint {checkpoint}")
 
         with torch.no_grad():
             model.eval()
-            val_running_loss = validation_step(model, loss_function, val_dataloader, val_batches_amount)
+            val_running_loss = validation_step(model, loss_function, val_dataloader, val_batches_amount, model_device)
             if val_running_loss < best_val_loss:
                 best_val_loss = val_running_loss
                 best_model_weights = deepcopy(model.state_dict())
@@ -247,7 +247,7 @@ if __name__ == "__main__":
     train_losses, val_losses, best_model_weights = train(
         triple_s_roberta, optimizer, lr_decay_schedule, loss_function,
         train_dataloader, val_dataloader,
-        warmup_step, total_steps,
+        warmup_step, total_steps, model_device,
         path_to_save_checkpoints
     )
 
