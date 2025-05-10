@@ -121,14 +121,16 @@ def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
         print(f"Reading {i}...")
         with open(f"{path}/part{i}.json", 'r') as fin:
             data = json.load(fin)
-            print("Joining...")
-            print(len(data))
-            for i in range(len(data)):
-                dataset.append({
-                    "input_ids": torch.tensor(data[i]["input_ids"], dtype=ids_dtype, device=device, requires_grad=False),
-                    "hugging_face_mask": torch.tensor(data[i]["hugging_face_mask"], dtype=mask_dtype, device=device, requires_grad=False)
-                })
-            del data
+
+        print(len(data))
+        print("Converting to torch...")
+        for j in range(len(data)):
+            data[j]["input_ids"] = torch.tensor(data[j]["input_ids"], dtype=ids_dtype, device=device, requires_grad=False)
+            data[j]["hugging_face_mask"] = torch.tensor(data[j]["hugging_face_mask"], dtype=mask_dtype, device=device, requires_grad=False)
+
+        print("Joining...")
+        dataset.extend(data)
+
     print(f"Done, {len(dataset)} rows")
 
     from torch.utils.data import DataLoader
