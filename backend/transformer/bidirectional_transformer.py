@@ -38,7 +38,7 @@ class BidirectionalTransformer(nn.Module):
             mask = make_mask(hugging_face_mask, self.device, self.dtype)
         else:
             mask = None
-        hidden_state = self._embeddings(x) * sqrt(self.d_model)
+        hidden_state = self._embeddings(x) * sqrt(self._d_model)
         hidden_state = self._positional_encoding(hidden_state)
         hidden_state = self._encoder(hidden_state, mask=mask)
 
