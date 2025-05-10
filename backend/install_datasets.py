@@ -147,6 +147,7 @@ def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
             for j in range(3):
                 print(tokenizer.decode(x["input_ids"][j]))
             break
+    print(f"###{tokenizer.decode([50108])}###")
 
 
     # dataset = [
