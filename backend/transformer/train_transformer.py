@@ -206,8 +206,10 @@ if __name__ == "__main__":
     )
 
     batch_size = 4096
-    total_steps = 1048576
-    warmup_step = 24576
+    # TODO total_steps = 1048576
+    total_steps = 20000
+    # TODO warmup_step = 24576
+    warmup_step = 6000
     weight_decay = 0.01
     eps = 1e-6
     beta1 = 0.9
@@ -228,10 +230,12 @@ if __name__ == "__main__":
     mask_dtype = torch.int8
 
     train_dataset_path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train"
-    train_last_index = 43
+    # TODO train_last_index = 43
+    train_last_index = 1
 
     val_dataset_path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/val"
-    val_last_index = 9
+    # TODO val_last_index = 9
+    val_last_index = 1
 
     print("Loading train dataset...")
     train_dataset = load_dataset(train_dataset_path, train_last_index, data_device, ids_dtype, mask_dtype)
