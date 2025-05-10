@@ -140,10 +140,12 @@ def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
     tokenizer = RobertaTokenizerFast.from_pretrained("FacebookAI/roberta-large")
     mlm_probability = 0.15
     mlm = DataCollatorForLanguageModeling(tokenizer, mlm_probability=mlm_probability, return_tensors='pt')
-    loader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn=mlm)
+    loader = DataLoader(dataset, batch_size=3, shuffle=False, collate_fn=mlm)
     for i, x in enumerate(loader):
         print(i, x)
-        break
+        if i == 3:
+            print(tokenizer.decode(x))
+            break
 
 
     # dataset = [
@@ -156,7 +158,10 @@ def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
 #join_datasets()
 #install_and_tokenize()
 
-join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 52, torch.device("cpu"), torch.uint16, torch.int8)
+# TODO 70 files
+#join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 52, torch.device("cpu"), torch.uint16, torch.int8)
+join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 1, torch.device("cpu"), torch.uint16, torch.int8)
+
 
 # https://www.kaggle.com/datasets/himonsarkar/openwebtext-dataset?select=train_split.txt
 # https://huggingface.co/datasets/bookcorpus/bookcorpus
