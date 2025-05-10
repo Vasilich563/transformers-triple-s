@@ -144,7 +144,7 @@ def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
     for i, x in enumerate(loader):
         print(i, x)
         if i == 3:
-            print(tokenizer.decode(x))
+            print(tokenizer.decode(x["input_ids"]))
             break
 
 
