@@ -1,13 +1,16 @@
+import sys
+sys.path.append('C:\\Users\\amis-\\PycharmProjects\\semantic_search_system')
+
 import csv
 import json
 from copy import deepcopy
 from datetime import datetime
 from threading import Thread
-from random import shuffle
+# from random import shuffle
 import torch
 from torch.utils.data import DataLoader
 from backend.define_torch_device import define_device
-from bidirectional_transformer import BidirectionalTransformer
+from backend.transformer.bidirectional_transformer import BidirectionalTransformer
 from transformers import RobertaTokenizerFast, DataCollatorForLanguageModeling
 
 
@@ -230,7 +233,9 @@ if __name__ == "__main__":
     val_dataset_path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/val"
     val_last_index = 9
 
+    print("Loading train dataset...")
     train_dataset = load_dataset(train_dataset_path, train_last_index, data_device, ids_dtype, mask_dtype)
+    print("Loading validation dataset...")
     val_dataset = load_dataset(val_dataset_path, val_last_index, data_device, ids_dtype, mask_dtype)
 
     train_dataloader, val_dataloader = init_dataloaders(train_dataset, val_dataset, mlm_collator, batch_size)
