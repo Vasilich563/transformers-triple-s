@@ -147,12 +147,20 @@ def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
             for j in range(3):
                 print(tokenizer.decode(x["input_ids"][j]))
             break
-    print(f"###{tokenizer.decode([50108])}###")
 
 
     # dataset = [
     #     {"input_ids": tokens["input_ids"][i], "hugging_face_mask": tokens["attention_mask"][i]} for i in range(tokens.input_ids.shape[0])
     # ]
+
+def change_order_of_files(path, last_index):
+    import os
+    for i in range(1, last_index + 1):
+        os.rename(f"{path}/part{i}.json", f"{path}/temp{i}.json")
+    print("temps done")
+    for i in range(1, last_index + 1):
+        os.rename(f"{path}/temp{i}.json", f"{path}/part{last_index + 1 - i}.json")
+
 
 
 
@@ -162,7 +170,8 @@ def join_jsons_to_torch(path, last_index, device, ids_dtype, mask_dtype):
 
 # TODO 70 files
 #join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 52, torch.device("cpu"), torch.uint16, torch.int8)
-join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 1, torch.device("cpu"), torch.uint16, torch.int8)
+#join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 1, torch.device("cpu"), torch.uint16, torch.int8)
+change_order_of_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122)
 
 
 # https://www.kaggle.com/datasets/himonsarkar/openwebtext-dataset?select=train_split.txt
