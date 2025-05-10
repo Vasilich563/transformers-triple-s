@@ -205,7 +205,8 @@ if __name__ == "__main__":
         vocab_size, max_len, num_layers, d_model, num_attention_heads, d_ffn_hidden, dropout_p, model_device, model_dtype, padding_index
     )
 
-    batch_size = 4096
+    # TODO batch_size = 4096
+    batch_size = 2048
     # TODO total_steps = 1048576
     total_steps = 20000
     # TODO warmup_step = 24576
