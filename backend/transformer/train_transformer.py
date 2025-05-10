@@ -164,10 +164,8 @@ def load_dataset(path, last_index, device, ids_dtype, mask_dtype):
         #print(len(data))
         #print("Converting to torch...")
         for j in range(len(data)):
-            data[j]["input_ids"] = torch.tensor(data[j]["input_ids"], dtype=ids_dtype, device=device,
-                                                requires_grad=False)
-            data[j]["hugging_face_mask"] = torch.tensor(data[j]["hugging_face_mask"], dtype=mask_dtype, device=device,
-                                                        requires_grad=False)
+            data[j]["input_ids"] = torch.tensor(data[j]["input_ids"], dtype=ids_dtype, device=device, requires_grad=False)
+            data[j]["hugging_face_mask"] = torch.tensor(data[j]["hugging_face_mask"], dtype=mask_dtype, device=device, requires_grad=False)
 
         #print("Joining...")
         dataset.extend(data)
@@ -185,6 +183,12 @@ def init_dataloaders(train_dataset, val_dataset, data_collator, batch_size):
 
 
 if __name__ == "__main__":
+    # TODO retokenize dataset using max len 64
+    # TODO level 1 - 16, level 2 - 32
+    # TODO order is 122 -> 1
+    # TODO check how much files can be loaded in new order
+    # TODO change values of levels and max len in report
+
     tokenizer = RobertaTokenizerFast.from_pretrained("FacebookAI/roberta-large")
     mlm_probability = 0.15
     mlm_collator = DataCollatorForLanguageModeling(tokenizer, mlm_probability=mlm_probability, return_tensors='pt')
@@ -193,6 +197,7 @@ if __name__ == "__main__":
 
     vocab_size = len(tokenizer.get_vocab())
     max_len = 256
+    # TODO max_len = 128
     #stride = 0
     num_layers = 12
     d_model = 768
@@ -206,7 +211,7 @@ if __name__ == "__main__":
     )
 
     # TODO batch_size = 4096 or 2048 or 1024 or 512
-    batch_size = 512
+    batch_size = 64
     # TODO total_steps = 1048576 or 2097152 or 4194304 or 8388608
     total_steps = 20000
     # TODO warmup_step = 24576

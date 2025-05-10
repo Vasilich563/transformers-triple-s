@@ -53,12 +53,12 @@ def on_file(filename, tokenizer, read_size, max_length, result_filename):
 
 def install_and_tokenize():
     tokenizer = RobertaTokenizerFast.from_pretrained("FacebookAI/roberta-large")
-    max_length = 256
+    max_length = 64
 
     #path = kagglehub.dataset_download("himonsarkar/openwebtext-dataset")
 
-    #path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/openwebtext-dataset"
-    path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/openwebtext-dataset-2"
+    path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/openwebtext-dataset"
+    #path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/openwebtext-dataset-2"
 
     print("Path to dataset files:", path)
     # with open(f"{path}/train_split.txt", 'r', encoding='utf-8') as fin:
@@ -166,10 +166,11 @@ def change_order_of_files(path, last_index):
 
 
 #join_datasets()
-#install_and_tokenize()
+install_and_tokenize()
 
-# TODO 70 files
-join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122, torch.device("cpu"), torch.uint16, torch.int8)
+# TODO split dataset using 128 max len
+# TODO 70 files???
+#join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122, torch.device("cpu"), torch.uint16, torch.int8)
 #join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 1, torch.device("cpu"), torch.uint16, torch.int8)
 #change_order_of_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122)
 
