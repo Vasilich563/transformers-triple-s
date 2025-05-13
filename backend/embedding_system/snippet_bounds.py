@@ -13,6 +13,6 @@ class SnippetBounds:
     @property
     def snippet_end_index(self):
         """Index from the original text, corresponding to the next char to the last char of the snippet (last in the snippet + 1)"""
-        return self._start_index_in_text
+        return self._after_last_index_in_text
 
 
