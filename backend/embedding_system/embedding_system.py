@@ -37,12 +37,12 @@ class EmbeddingSystem:
         for i in range(offset_mapping.shape[0]):
             # offset_mappin[i][j] is array of len(2)
             # offset_mapping[i][0] is always [0, 0] and maps to [CLS] special token
-            start = offset_mapping[i][1][0]
+            start = offset_mapping[i][1][0].cpu().item()
             # offset_mapping[i][j] is always [0, 0] and maps to [SEP] special token if j = (offset_mapping.shape[1] - 1)
             j = offset_mapping.shape[1] - 2
             while offset_mapping[i][j][1] == 0 and j > 0:  # j == 0 is maps to [CLS] special token
                 j -= 1  # offset_mapping[i][j] = [0, 0] maps to [PAD], but the part of the text is needed
-            end = offset_mapping[i][j][1]
+            end = offset_mapping[i][j][1].cpu().item()
             # offset_mapping[i][j][1] is the index of the element after the last element of the window
             # for the last window offset_mapping[i][j][1] == len(original_text)
             snippet_bounds.append(SnippetBounds(start, end))
@@ -92,7 +92,7 @@ class EmbeddingSystem:
                 "snippet": document_text[snippet_bounds[i].snippet_start_index: snippet_bounds[i].snippet_end_index],
                 "embedding": embeddings_batch[i]
             })
-            return list_of_rows
+        return list_of_rows
 
     @staticmethod
     def _prepare_row_for_catalog(document_text, document_path, snippet_bounds: List[SnippetBounds]):
