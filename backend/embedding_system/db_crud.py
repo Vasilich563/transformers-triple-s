@@ -17,13 +17,13 @@ class DBCrud:
     __insert_template = """
         INSERT INTO {schema_name}.{table_name} 
             (snippet_name, document_path, document_name, snippet, embedding) 
-            VALUES (:snippet_name, :document_path, :document_name, :snippet, :embedding)}
+            VALUES (:snippet_name, :document_path, :document_name, :snippet, :embedding)
     """
 
     __insert_catalog_table_template = """
         INSERT INTO {schema_name}.{table_name} 
             (document_path, document_name, snippet) 
-            VALUES (:document_path, :document_name, :snippet)}
+            VALUES (:document_path, :document_name, :snippet)
     """
 
     __select_by_embedding_template = """
