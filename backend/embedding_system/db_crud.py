@@ -217,7 +217,7 @@ class DBCrud:
                         schema_name=SCHEMA_NAME, table_name=level_table_name, embedding_dim=EMBEDDING_DIM
                     )
                 ),
-                {"limit": limit, "query_embedding": query_embedding_list[0]}
+                {"limit": limit, "query_embedding": query_embedding_list}
             )
         ).all()
 
