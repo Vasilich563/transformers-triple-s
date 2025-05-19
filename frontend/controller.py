@@ -15,7 +15,7 @@ RESULTS_PER_PAGE = 3
 
 tokenizer = RobertaTokenizerFast.from_pretrained("FacebookAI/roberta-large")
 vocab_size = len(tokenizer.get_vocab())
-max_len = 256
+max_len = 64
 stride = 0
 num_layers = 12
 d_model = 768
@@ -28,12 +28,15 @@ dtype = torch.float32
 embedding_model = BidirectionalTransformer(
     vocab_size, max_len, num_layers, d_model, num_attention_heads, d_ffn_hidden, dropout_p, device, dtype, padding_index
 )
+checkpoint = torch.load("/home/yackub/PycharmProjects/Diploma/backend/transformer/checkpoint_after_training.pth", map_location=device)
+embedding_model.load_state_dict(checkpoint["best_weights"])
+embedding_model.eval()
 
 db_engine = create_engine("postgresql://postgres:ValhalaWithZolinks@localhost:5432/postgres")
 db_crud = DBCrud(db_engine)
 EmbeddingSystem.class_init(tokenizer, embedding_model, db_crud)
 
-directory_to_check = "/home/yackub/PycharmProjects/Diploma/temp"
+directory_to_check = "/home/yackub/PycharmProjects/Diploma/triple-s-storage"
 observe_directory_daemon(directory_to_check)
 
 
@@ -77,7 +80,7 @@ def about_page():
 @app.route("/transformers-triple-s/search/", methods=["GET", "POST"])
 def search_page():
     user_query = request.form.get("user-query").strip()
-    limit = request.form.get("limit", int)
+    limit = int(request.form.get("limit"))
     search_by_name_flag = False if request.form.get("search_by_name_flag") is None else True
     exactly_flag = False if request.form.get("exactly_flag") is None else True
 
@@ -86,64 +89,64 @@ def search_page():
 
         return main_page(limit, search_by_name_flag, exactly_flag)
 
-    # result_list = process_db_select_results(
-    #     EmbeddingSystem.handle_user_query(user_query, search_by_name_flag, exactly_flag, limit)
-    # )
-    result_list = [
-        {
-            "document_name": "Example Search Result Title - This is what a result looks like",
-            "document_path": "/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html",
-            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html", safe='')),
-            "snippet": "This is a sample search result description. It typically contains a brief excerpt from the webpage that includes your search terms. The relevant words are often highlighted in bold."
-        },
-        {
-            "document_name": "Third Search Result Example",
-            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf",
-            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf", safe='')),
-            "snippet": "The description here shows how the page content relates to the search terms. Different search engines have different algorithms for selecting which part of the page to display in the snippet."
-        },
-        {
-            "document_name": "Video Result Example",
-            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx",
-            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx", safe='')),
-            "snippet": "This would be a video result. Sometimes special rich snippets are displayed for different types of content like videos, recipes, or products."
-        },
-        {
-            "document_name": "Final Example Search Result",
-            "document_path": "/home/yackub/PycharmProjects/Diploma/temp/prihod.txt",
-            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/temp/prihod.txt", safe='')),
-            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        },
-        {
-            "document_name": "Final Example Search Result",
-            "document_path": "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/requirements.txt",
-            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/requirements.txt", safe='')),
-            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        },
-        {
-            "document_name": "6",
-            "document_path": "C:/Users/amis-/PycharmProjects/semantic_search_system/frontend/templates/AboutPage.html",
-            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("C:/Users/amis-/PycharmProjects/semantic_search_system/frontend/templates/AboutPage.html",safe='')),
-            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        },
-        {
-            "document_name": "7",
-            "document_path": "C:/Users/amis-/PycharmProjects/semantic_search_system/refrences/CrossEntropyLoss --- PyTorch 2.6 Documentation.pdf",
-            "url_to_get_file": url_for('send_file', path_to_file=parse.quote("C:/Users/amis-/PycharmProjects/semantic_search_system/refrences/CrossEntropyLoss --- PyTorch 2.6 Documentation.pdf", safe='')),
-            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        },
-        {
-            "document_name": "8",
-            "document_path": "C:/Users/amis-/Downloads/ddpg.docx",
-            "url_to_get_file": url_for('send_file', path_to_file=parse.quote(                "C:/Users/amis-/Downloads/ddpg.docx",                safe='')),
-            "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
-        },
+    result_list = process_db_select_results(
+        EmbeddingSystem.handle_user_query(user_query, search_by_name_flag, exactly_flag, limit)
+    )
+    # result_list = [
+    #     {
+    #         "document_name": "Example Search Result Title - This is what a result looks like",
+    #         "document_path": "/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html",
+    #         "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/frontend/templates/nigga.html", safe='')),
+    #         "snippet": "This is a sample search result description. It typically contains a brief excerpt from the webpage that includes your search terms. The relevant words are often highlighted in bold."
+    #     },
+    #     {
+    #         "document_name": "Third Search Result Example",
+    #         "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf",
+    #         "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/temp/Метрика TF-IDF (Term frequencyinverse document frequency). Loginom Wiki.pdf", safe='')),
+    #         "snippet": "The description here shows how the page content relates to the search terms. Different search engines have different algorithms for selecting which part of the page to display in the snippet."
+    #     },
+    #     {
+    #         "document_name": "Video Result Example",
+    #         "document_path": "/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx",
+    #         "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/temp/Якубовский_для_диплома.docx", safe='')),
+    #         "snippet": "This would be a video result. Sometimes special rich snippets are displayed for different types of content like videos, recipes, or products."
+    #     },
+    #     {
+    #         "document_name": "Final Example Search Result",
+    #         "document_path": "/home/yackub/PycharmProjects/Diploma/temp/prihod.txt",
+    #         "url_to_get_file": url_for('send_file', path_to_file=parse.quote("/home/yackub/PycharmProjects/Diploma/temp/prihod.txt", safe='')),
+    #         "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+    #     },
+    #     {
+    #         "document_name": "Final Example Search Result",
+    #         "document_path": "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/requirements.txt",
+    #         "url_to_get_file": url_for('send_file', path_to_file=parse.quote("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/requirements.txt", safe='')),
+    #         "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+    #     },
+    #     {
+    #         "document_name": "6",
+    #         "document_path": "C:/Users/amis-/PycharmProjects/semantic_search_system/frontend/templates/AboutPage.html",
+    #         "url_to_get_file": url_for('send_file', path_to_file=parse.quote("C:/Users/amis-/PycharmProjects/semantic_search_system/frontend/templates/AboutPage.html",safe='')),
+    #         "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+    #     },
+    #     {
+    #         "document_name": "7",
+    #         "document_path": "C:/Users/amis-/PycharmProjects/semantic_search_system/refrences/CrossEntropyLoss --- PyTorch 2.6 Documentation.pdf",
+    #         "url_to_get_file": url_for('send_file', path_to_file=parse.quote("C:/Users/amis-/PycharmProjects/semantic_search_system/refrences/CrossEntropyLoss --- PyTorch 2.6 Documentation.pdf", safe='')),
+    #         "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+    #     },
+    #     {
+    #         "document_name": "8",
+    #         "document_path": "C:/Users/amis-/Downloads/ddpg.docx",
+    #         "url_to_get_file": url_for('send_file', path_to_file=parse.quote(                "C:/Users/amis-/Downloads/ddpg.docx",                safe='')),
+    #         "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
+    #     },
         # {
         #     "document_name": "9",
         #     "document_path": "https://www.finalexample.com/blog/post",
         #     "snippet": "The last example result in our demonstration. Real search results would typically have 10 items per page with pagination controls to navigate through more results."
         # }
-    ]
+    # ]
     return render_template(
         "SearchPage.html",
         user_query=escape(user_query),
