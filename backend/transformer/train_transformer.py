@@ -116,8 +116,6 @@ def train(
             model, optimizer, schedule, loss_function, train_dataloader, step, warmup_step, total_steps, model_device
         )
 
-        print(f"Checkpoint {checkpoint}")
-
         with torch.no_grad():
             model.eval()
             val_running_loss = validation_step(model, loss_function, val_dataloader, val_batches_amount, model_device)
@@ -129,7 +127,8 @@ def train(
         train_losses.append(train_running_loss)
         val_losses.append(val_running_loss)
 
-        print(f"\tStep is ended in {datetime.now() - epoch_start}\n\tTrain loss:\t{train_running_loss}\n\tValidation loss: {val_running_loss}")
+        print(f"\tEpoch is ended in {datetime.now() - epoch_start}\n\tTrain loss:\t{train_running_loss}\n\tValidation loss: {val_running_loss}")
+        print(f"Checkpoint {checkpoint}")
         save_checkpoint_daemon(model, optimizer, schedule, best_model_weights, best_val_loss, step, path_to_save_checkpoints, checkpoint)
 
         if end_training:

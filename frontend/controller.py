@@ -32,6 +32,9 @@ checkpoint = torch.load("/home/yackub/PycharmProjects/Diploma/backend/transforme
 embedding_model.load_state_dict(checkpoint["best_weights"])
 embedding_model.eval()
 
+from transformers import RobertaModel
+embedding_model = RobertaModel.from_pretrained("FacebookAI/roberta-large").to(device)
+
 db_engine = create_engine("postgresql://postgres:ValhalaWithZolinks@localhost:5432/postgres")
 db_crud = DBCrud(db_engine)
 EmbeddingSystem.class_init(tokenizer, embedding_model, db_crud)

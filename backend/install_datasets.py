@@ -14,6 +14,9 @@ def on_file(filename, tokenizer, read_size, max_length, result_filename):
     with open(filename, 'r', encoding='utf-8') as fin:
         i = 1
         while True:
+            if i <= 21:
+                i += 1
+                continue
             print(i)
             print("Reading...")
             dataset = fin.read(read_size)
@@ -160,6 +163,27 @@ def change_order_of_files(path, last_index):
     print("temps done")
     for i in range(1, last_index + 1):
         os.rename(f"{path}/temp{i}.json", f"{path}/part{last_index + 1 - i}.json")
+
+
+def remove50108_from_files(path, last_index):
+    for i in range(1, last_index + 1):
+        new_data = []
+        print(f"Reading {i}...")
+        with open(f"{path}/part{i}.json", 'r') as fin:
+            data = json.load(fin)
+
+        #print(len(data))
+        print("Removing 50108...")
+        for j in range(len(data)):
+            if 50108 in data[j]["input_ids"]:
+                continue
+            else:
+                new_data.append(data[j])
+
+        print(f"Writing {i}...")
+        with open(f"{path}/part{i}.json", 'w') as fout:
+            json.dump(data, fout)
+
 
 
 
