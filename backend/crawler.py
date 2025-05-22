@@ -78,6 +78,8 @@ class CrawlerHandler(FileSystemEventHandler):
     def on_created(self, event: FileCreatedEvent):
         if not event.is_directory:
             text = self._extract_text(event.src_path)
+            print("INSERT")
+            print(text)
             if text is not None:
                 delete_daemon = Thread(target=EmbeddingSystem.index_new_text, args=(text, event.src_path), daemon=True)
                 delete_daemon.start()
@@ -85,10 +87,15 @@ class CrawlerHandler(FileSystemEventHandler):
 
     def on_deleted(self, event: FileDeletedEvent):
         if not event.is_directory:
+            print("DELETE")
             for postfix in self.postfixes:
+                print(f"DELETE {postfix}")
                 if event.src_path.endswith(postfix):
+                    print("DELETE")
                     delete_daemon = Thread(target=EmbeddingSystem.remove_document, args=(event.src_path,), daemon=True)
                     delete_daemon.start()
+                    break
+
 
 
     def _handle_on_modified(self, event: FileModifiedEvent):
