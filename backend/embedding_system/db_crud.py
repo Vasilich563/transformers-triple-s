@@ -18,12 +18,14 @@ class DBCrud:
         INSERT INTO {schema_name}.{table_name} 
             (snippet_name, document_path, document_name, snippet, embedding) 
             VALUES (:snippet_name, :document_path, :document_name, :snippet, :embedding)
+            ON CONFLICT (snippet_name) DO UPDATE SET snippet = excluded.snippet, embedding = excluded.embedding 
     """
 
     __insert_catalog_table_template = """
         INSERT INTO {schema_name}.{table_name} 
             (document_path, document_name, snippet) 
             VALUES (:document_path, :document_name, :snippet)
+            ON CONFLICT DO UPDATE SET snippet = excluded.snippet
     """
 
     __select_by_embedding_template = """
