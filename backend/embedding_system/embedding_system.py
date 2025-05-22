@@ -64,8 +64,9 @@ class EmbeddingSystem:
     @classmethod
     def _count_text_embeddings(cls, text_input_ids, text_attention_mask, mean_across_batch):
         with torch.no_grad():
-            # text_input_ids = text_input_ids.to(cls._embedding_model.device)
-            # text_attention_mask = text_attention_mask.to(cls._embedding_model.device)
+            text_input_ids = text_input_ids.to(cls._embedding_model.device)
+            text_attention_mask = text_attention_mask.to(cls._embedding_model.device)
+
             # text_embedding_batch = cls._embedding_model.forward(text_input_ids, text_attention_mask)
 
             text_embedding_batch = cls._embedding_model.forward(input_ids=text_input_ids, attention_mask=text_attention_mask).last_hidden_state
