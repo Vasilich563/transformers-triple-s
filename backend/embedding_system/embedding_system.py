@@ -151,7 +151,7 @@ class EmbeddingSystem:
 
 
     @classmethod
-    def handle_user_query(cls, query, search_by_name_flag, exactly_flag, limit=100):
+    def handle_user_query(cls, embedding_dim, query, search_by_name_flag, exactly_flag, limit=100):
         if search_by_name_flag:
             return cls.handle_search_by_name(query, limit, exactly_flag)
         level = 1
@@ -167,9 +167,9 @@ class EmbeddingSystem:
 
         text_embedding_batch = cls._count_text_embeddings(input_ids, attention_mask, mean_across_batch=False)
         if level == 1:
-            result = cls._db_crud.select_from_level1(text_embedding_batch, limit)
+            result = cls._db_crud.select_from_level1(text_embedding_batch, embedding_dim, limit)
         elif level == 2:
-            result = cls._db_crud.select_from_level2(text_embedding_batch, limit)
+            result = cls._db_crud.select_from_level2(text_embedding_batch, embedding_dim, limit)
         return result
 
     @classmethod

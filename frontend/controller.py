@@ -97,7 +97,7 @@ def search_page():
         return main_page(limit, search_by_name_flag, exactly_flag)
 
     result_list = process_db_select_results(
-        EmbeddingSystem.handle_user_query(user_query, search_by_name_flag, exactly_flag, limit)
+        EmbeddingSystem.handle_user_query(d_model, user_query, search_by_name_flag, exactly_flag, limit)
     )
     # result_list = [
     #     {

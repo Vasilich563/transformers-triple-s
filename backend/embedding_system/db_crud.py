@@ -1,7 +1,7 @@
 import enum
 from sqlalchemy import text
 from sqlalchemy import Engine
-from backend.embedding_system.make_db import LEVEL_TABLE_NAME_PREFIX, SCHEMA_NAME, EMBEDDING_DIM, CATALOG_TABLE_NAME
+from backend.embedding_system.make_db import LEVEL_TABLE_NAME_PREFIX, SCHEMA_NAME, CATALOG_TABLE_NAME
 from threading import Thread
 
 
@@ -176,37 +176,45 @@ class DBCrud:
         return queries_results[:limit]
 
 
-    def _select_from_level_for_one_embedding(self, connection, level_table_name, query_embedding_list, limit):
+    def _select_from_level_for_one_embedding(
+        self, connection, level_table_name, query_embedding_list, embedding_dim, limit
+    ):
         return (
             connection.execute(
                 text(
                     self.__select_by_embedding_template.format(
-                        schema_name=SCHEMA_NAME, table_name=level_table_name, embedding_dim=EMBEDDING_DIM
+                        schema_name=SCHEMA_NAME, table_name=level_table_name, embedding_dim=embedding_dim
                     )
                 ),
                 {"limit": limit, "query_embedding": query_embedding_list}
             )
         ).all()
 
-    def _select_from_level(self, connection, level_table_name, query_embedding_list, limit):
+    def _select_from_level(self, connection, level_table_name, query_embedding_list, embedding_dim, limit):
         queries_results = []
         for i in range(len(query_embedding_list)):
             queries_results.extend(
-                self._select_from_level_for_one_embedding(connection, level_table_name, query_embedding_list[i], limit)
+                self._select_from_level_for_one_embedding(
+                    connection, level_table_name, query_embedding_list[i], embedding_dim, limit
+                )
             )
         queries_results.sort(key=lambda x: x[SelectIndexes.cos_distance.value])
 
         return queries_results
 
-    def select_from_level1(self, query_embedding_list, limit):
+    def select_from_level1(self, query_embedding_list, embedding_dim, limit):
         with self._db_engine.begin() as connection:
-            queries_results = self._select_from_level(connection, self._level1_name, query_embedding_list, limit)
+            queries_results = self._select_from_level(
+                connection, self._level1_name, query_embedding_list, embedding_dim, limit
+            )
 
         return queries_results[:limit]
 
-    def select_from_level2(self, query_embedding_list, limit):
+    def select_from_level2(self, query_embedding_list, embedding_dim, limit):
         with self._db_engine.begin() as connection:
-            queries_results = self._select_from_level(connection, self._level2_name, query_embedding_list, limit)
+            queries_results = self._select_from_level(
+                connection, self._level2_name, query_embedding_list, embedding_dim, limit
+            )
 
         return queries_results[:limit]
 
