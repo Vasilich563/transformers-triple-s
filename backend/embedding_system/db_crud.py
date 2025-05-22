@@ -25,7 +25,7 @@ class DBCrud:
         INSERT INTO {schema_name}.{table_name} 
             (document_path, document_name, snippet) 
             VALUES (:document_path, :document_name, :snippet)
-            ON CONFLICT DO UPDATE SET snippet = excluded.snippet
+            ON CONFLICT (document_path) DO UPDATE SET snippet = excluded.snippet
     """
 
     __select_by_embedding_template = """
