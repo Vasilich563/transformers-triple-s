@@ -1,3 +1,4 @@
+from threading import Thread
 from typing import List
 import pathlib
 import torch
@@ -108,14 +109,20 @@ class EmbeddingSystem:
 
     @classmethod
     def index_new_text(cls, document_text, document_path):
+        # Is used as daemon or is part of daemon on the higher level
         text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
             document_text, cls._level_1_max_len, cls._level_1_stride, return_snippet_bounds=True
         )
         text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
         list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-        cls._db_crud.write_level1_snippet_rows(list_of_rows_for_db)
+        print(len(text_embeddings))
 
-        cls._db_crud.write_catalog_row(cls._prepare_row_for_catalog(document_text, document_path, snippet_bounds))
+        write_level1_thread = Thread(target=cls._db_crud.write_level1_snippet_rows, args=(list_of_rows_for_db,))
+        write_level1_thread.start()
+
+        row_for_catalog = cls._prepare_row_for_catalog(document_text, document_path, snippet_bounds)
+        write_catalog_thread = Thread(target=cls._db_crud.write_catalog_row, args=(row_for_catalog,))
+        write_catalog_thread.start()
 
         # if text is big enough to place it on the next level too
         if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_2_max_len, cls._level_1_max_len, cls._level_1_stride):
@@ -124,21 +131,19 @@ class EmbeddingSystem:
             )
             text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
             list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-            cls._db_crud.write_level2_snippet_rows(list_of_rows_for_db)
+            print(len(text_embeddings))
+            write_level2_thread = Thread(target=cls._db_crud.write_level2_snippet_rows, args=(list_of_rows_for_db,))
+            write_level2_thread.start()
 
-            # # if text is big enough to place it on the next level too
-            # if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_3_max_len, cls._level_2_max_len, cls._level_2_stride):
-            #     text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
-            #         document_text, cls._level_3_max_len, cls._level_3_stride, return_snippet_bounds=True
-            #     )
-            #     text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
-            #     list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-            #     cls._db_crud.write_level3_snippet_rows(list_of_rows_for_db)
+            write_level2_thread.join()
+        write_level1_thread.join()
+        write_catalog_thread.join()
 
 
     @classmethod
     def handle_search_by_name(cls, document_name, limit, exactly_flag):
         return cls._db_crud.select_by_name(document_name, limit, exactly_flag)
+
 
     @classmethod
     def handle_user_query(cls, query, search_by_name_flag, exactly_flag, limit=100):
@@ -154,28 +159,22 @@ class EmbeddingSystem:
             input_ids, attention_mask = cls._tokenize_text(
                 query, cls._level_2_max_len, cls._level_2_stride, return_snippet_bounds=False
             )
-            # if query is big the next level is used to find snippet
-            # if input_ids.shape[0] > cls._windows_before_next_level(cls._level_3_max_len, cls._level_2_max_len, cls._level_2_stride):
-            #     level = 3
-            #     input_ids, attention_mask = cls._tokenize_text(
-            #         query, cls._level_3_max_len, cls._level_3_stride, return_snippet_bounds=False
-            #     )
 
         text_embedding_batch = cls._count_text_embeddings(input_ids, attention_mask, mean_across_batch=False)
         if level == 1:
             result = cls._db_crud.select_from_level1(text_embedding_batch, limit)
         elif level == 2:
             result = cls._db_crud.select_from_level2(text_embedding_batch, limit)
-        #else:
-        #    result = cls._db_crud.select_from_level3(text_embedding_batch, limit)
         return result
 
     @classmethod
     def remove_document(cls, document_path):
+        # This method should be used as Thread on the higher level and it should be a part of daemon.
         cls._db_crud.remove_from_all_levels(document_path)
 
     @classmethod
     def update_document(cls, document_path, new_text):
+        # This method should be used as Thread on the higher level and it should be a part of daemon.
         cls._db_crud.remove_from_all_levels(document_path)
         cls.index_new_text(new_text, document_path)
 
