@@ -2,6 +2,7 @@ from threading import Thread
 from typing import List
 import pathlib
 import torch
+from sqlalchemy.exc import SQLAlchemyError
 from transformers import RobertaTokenizerFast
 from backend.transformer.bidirectional_transformer import BidirectionalTransformer
 from backend.embedding_system.snippet_bounds import SnippetBounds
@@ -109,35 +110,39 @@ class EmbeddingSystem:
 
     @classmethod
     def index_new_text(cls, document_text, document_path):
+        try:
         # Is used as daemon or is part of daemon on the higher level
-        text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
-            document_text, cls._level_1_max_len, cls._level_1_stride, return_snippet_bounds=True
-        )
-        text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
-        list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
-        print(len(text_embeddings))
-
-        write_level1_thread = Thread(target=cls._db_crud.write_level1_snippet_rows, args=(list_of_rows_for_db,))
-        write_level1_thread.start()
-
-        row_for_catalog = cls._prepare_row_for_catalog(document_text, document_path, snippet_bounds)
-        write_catalog_thread = Thread(target=cls._db_crud.write_catalog_row, args=(row_for_catalog,))
-        write_catalog_thread.start()
-
-        # if text is big enough to place it on the next level too
-        if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_2_max_len, cls._level_1_max_len, cls._level_1_stride):
             text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
-                document_text, cls._level_2_max_len, cls._level_2_stride, return_snippet_bounds=True
+                document_text, cls._level_1_max_len, cls._level_1_stride, return_snippet_bounds=True
             )
             text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
             list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
             print(len(text_embeddings))
-            write_level2_thread = Thread(target=cls._db_crud.write_level2_snippet_rows, args=(list_of_rows_for_db,))
-            write_level2_thread.start()
 
-            write_level2_thread.join()
-        write_level1_thread.join()
-        write_catalog_thread.join()
+            write_level1_thread = Thread(target=cls._db_crud.write_level1_snippet_rows, args=(list_of_rows_for_db,))
+            write_level1_thread.start()
+
+            row_for_catalog = cls._prepare_row_for_catalog(document_text, document_path, snippet_bounds)
+            write_catalog_thread = Thread(target=cls._db_crud.write_catalog_row, args=(row_for_catalog,))
+            write_catalog_thread.start()
+
+            # if text is big enough to place it on the next level too
+            if text_input_ids.shape[0] > cls._windows_before_next_level(cls._level_2_max_len, cls._level_1_max_len, cls._level_1_stride):
+                text_input_ids, text_attention_mask, snippet_bounds = cls._tokenize_text(
+                    document_text, cls._level_2_max_len, cls._level_2_stride, return_snippet_bounds=True
+                )
+                text_embeddings = cls._count_text_embeddings(text_input_ids, text_attention_mask, mean_across_batch=False)
+                list_of_rows_for_db = cls._prepare_rows_for_db(document_text, document_path, snippet_bounds, text_embeddings)
+                print(len(text_embeddings))
+                write_level2_thread = Thread(target=cls._db_crud.write_level2_snippet_rows, args=(list_of_rows_for_db,))
+                write_level2_thread.start()
+
+                write_level2_thread.join()
+            write_level1_thread.join()
+            write_catalog_thread.join()
+        except SQLAlchemyError:
+            remove_thread = Thread(target=cls.remove_document, args=(document_path,), daemon=True)
+            remove_thread.start()
 
 
     @classmethod
