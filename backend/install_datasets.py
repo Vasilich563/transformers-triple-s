@@ -14,9 +14,7 @@ def on_file(filename, tokenizer, read_size, max_length, result_filename):
     with open(filename, 'r', encoding='utf-8') as fin:
         i = 1
         while True:
-            if i <= 21:
-                i += 1
-                continue
+
             print(i)
             print("Reading...")
             dataset = fin.read(read_size)
@@ -68,7 +66,8 @@ def install_and_tokenize():
     #     train_dataset_text = fin.read()
 
     print("Train dataset")
-    on_file(f"{path}/train_split.txt", tokenizer, read_size, max_length, "./new_datasets-2/train/")
+    #on_file(f"{path}/train_split.txt", tokenizer, read_size, max_length, "./new_datasets-2/train/")
+    print("Validation dataset")
     on_file(f"{path}/val_split.txt", tokenizer, read_size, max_length, "./new_datasets-2/val/")
 
 
@@ -182,7 +181,7 @@ def remove50108_from_files(path, last_index):
 
         print(f"Writing {i}...")
         with open(f"{path}/part{i}.json", 'w') as fout:
-            json.dump(data, fout)
+            json.dump(new_data, fout)
 
 
 
@@ -190,13 +189,23 @@ def remove50108_from_files(path, last_index):
 
 
 #join_datasets()
-install_and_tokenize()
+# install_and_tokenize()
+# change_order_of_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train", 143)
+# remove50108_from_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train", 143)
+# remove50108_from_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/val", 15)
 
 # TODO split dataset using 128 max len
-# TODO 70 files???
-#join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122, torch.device("cpu"), torch.uint16, torch.int8)
+# TODO 90 files???
+#join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train", 143, torch.device("cpu"), torch.uint16, torch.int8)
 #join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 1, torch.device("cpu"), torch.uint16, torch.int8)
-#change_order_of_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 122)
+
+with open("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train/part143.json", 'r') as fin:
+    a = json.load(fin)
+    print("read")
+    for i in range(len(a)):
+        if 50108 in a[i]["input_ids"]:
+            print("Yes")
+
 
 
 # https://www.kaggle.com/datasets/himonsarkar/openwebtext-dataset?select=train_split.txt
