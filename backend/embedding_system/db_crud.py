@@ -1,7 +1,7 @@
 import enum
 from sqlalchemy import text
 from sqlalchemy import Engine
-from backend.embedding_system.make_db import LEVEL_TABLE_NAME_PREFIX, SCHEMA_NAME, EMBEDDING_DIM, CATALOG_TABLE_NAME
+from backend.embedding_system.make_db import LEVEL_TABLE_NAME_PREFIX, SCHEMA_NAME, CATALOG_TABLE_NAME
 from threading import Thread
 
 
@@ -18,12 +18,14 @@ class DBCrud:
         INSERT INTO {schema_name}.{table_name} 
             (snippet_name, document_path, document_name, snippet, embedding) 
             VALUES (:snippet_name, :document_path, :document_name, :snippet, :embedding)
+            ON CONFLICT (snippet_name) DO UPDATE SET snippet = excluded.snippet, embedding = excluded.embedding 
     """
 
     __insert_catalog_table_template = """
         INSERT INTO {schema_name}.{table_name} 
             (document_path, document_name, snippet) 
             VALUES (:document_path, :document_name, :snippet)
+            ON CONFLICT (document_path) DO UPDATE SET snippet = excluded.snippet
     """
 
     __select_by_embedding_template = """
@@ -94,6 +96,7 @@ class DBCrud:
 
     def write_level1_snippet_rows(self, list_of_rows):
         """
+        This method should be used as Thread on the higher level and it should be a part of daemon.
         :param list_of_rows: List[
             Dict[
                 "snippet_name": str,
@@ -106,18 +109,15 @@ class DBCrud:
         :return: None
         """
         with self._db_engine.begin() as connection:
-            thread = Thread(
-                target=connection.execute,
-                args=(
-                    text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level1_name)),
-                    list_of_rows
-                ),
-                daemon=True
+            connection.execute(
+                text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level1_name)),
+                list_of_rows
             )
-            thread.start()
+
 
     def write_level2_snippet_rows(self, list_of_rows):
         """
+        This method should be used as Thread on the higher level and it should be a part of daemon.
         :param list_of_rows: List[
             Dict[
                 "snippet_name": str,
@@ -130,43 +130,15 @@ class DBCrud:
         :return: None
         """
         with self._db_engine.begin() as connection:
-            thread = Thread(
-                target=connection.execute,
-                args=(
-                    text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level2_name)),
-                    list_of_rows
-                ),
-                daemon=True
+            connection.execute(
+                text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level2_name)),
+                list_of_rows
             )
-            thread.start()
-
-    # def write_level3_snippet_rows(self, list_of_rows):
-    #     """
-    #     :param list_of_rows: List[
-    #         Dict[
-    #             "snippet_name": str,
-    #             "document_path": str,
-    #             "document_name": str,
-    #             "snippet": str,
-    #             "embedding": List[float]
-    #         ]
-    #     ]
-    #     :return: None
-    #     """
-    #     with self._db_engine.begin() as connection:
-    #         thread = Thread(
-    #             target=connection.execute,
-    #             args=(
-    #                 text(self.__insert_template.format(schema_name=SCHEMA_NAME, table_name=self._level3_name)),
-    #                 list_of_rows
-    #             ),
-    #             daemon=True
-    #         )
-    #         thread.start()
 
 
     def write_catalog_row(self, row):
         """
+        This method should be used as Thread on the higher level and it should be a part of daemon.
         :param row: Dict[
             "document_path": str,
             "document_name": str,
@@ -175,15 +147,10 @@ class DBCrud:
         :return: None
         """
         with self._db_engine.begin() as connection:
-            thread = Thread(
-                target=connection.execute,
-                args=(
-                    text(self.__insert_catalog_table_template.format(schema_name=SCHEMA_NAME, table_name=CATALOG_TABLE_NAME)),
-                    [row]
-                ),
-                daemon=True
+            connection.execute(
+                text(self.__insert_catalog_table_template.format(schema_name=SCHEMA_NAME, table_name=CATALOG_TABLE_NAME)),
+                [row]
             )
-            thread.start()
 
 
     def _select_by_name(self, connection, document_name, limit, exactly_flag):
@@ -209,45 +176,48 @@ class DBCrud:
         return queries_results[:limit]
 
 
-    def _select_from_level_for_one_embedding(self, connection, level_table_name, query_embedding_list, limit):
+    def _select_from_level_for_one_embedding(
+        self, connection, level_table_name, query_embedding_list, embedding_dim, limit
+    ):
         return (
             connection.execute(
                 text(
                     self.__select_by_embedding_template.format(
-                        schema_name=SCHEMA_NAME, table_name=level_table_name, embedding_dim=EMBEDDING_DIM
+                        schema_name=SCHEMA_NAME, table_name=level_table_name, embedding_dim=embedding_dim
                     )
                 ),
                 {"limit": limit, "query_embedding": query_embedding_list}
             )
         ).all()
 
-    def _select_from_level(self, connection, level_table_name, query_embedding_list, limit):
+    def _select_from_level(self, connection, level_table_name, query_embedding_list, embedding_dim, limit):
         queries_results = []
         for i in range(len(query_embedding_list)):
             queries_results.extend(
-                self._select_from_level_for_one_embedding(connection, level_table_name, query_embedding_list[i], limit)
+                self._select_from_level_for_one_embedding(
+                    connection, level_table_name, query_embedding_list[i], embedding_dim, limit
+                )
             )
         queries_results.sort(key=lambda x: x[SelectIndexes.cos_distance.value])
 
         return queries_results
 
-    def select_from_level1(self, query_embedding_list, limit):
+    def select_from_level1(self, query_embedding_list, embedding_dim, limit):
         with self._db_engine.begin() as connection:
-            queries_results = self._select_from_level(connection, self._level1_name, query_embedding_list, limit)
+            queries_results = self._select_from_level(
+                connection, self._level1_name, query_embedding_list, embedding_dim, limit
+            )
 
         return queries_results[:limit]
 
-    def select_from_level2(self, query_embedding_list, limit):
+    def select_from_level2(self, query_embedding_list, embedding_dim, limit):
         with self._db_engine.begin() as connection:
-            queries_results = self._select_from_level(connection, self._level2_name, query_embedding_list, limit)
+            queries_results = self._select_from_level(
+                connection, self._level2_name, query_embedding_list, embedding_dim, limit
+            )
 
         return queries_results[:limit]
 
-    # def select_from_level3(self, query_embedding_list, limit):
-    #     with self._db_engine.begin() as connection:
-    #         queries_results = self._select_from_level(connection, self._level3_name, query_embedding_list, limit)
-    #
-    #     return queries_results[:limit]
 
     def _delete_from_table(self, connection, table_name, document_path):
         connection.execute(
@@ -259,31 +229,25 @@ class DBCrud:
         with self._db_engine.begin() as connection:
             catalog_thread = Thread(
                 target=self._delete_from_table,
-                args=(connection, CATALOG_TABLE_NAME, document_path),
-                daemon=True
+                args=(connection, CATALOG_TABLE_NAME, document_path)
             )
             catalog_thread.start()
 
             l1_thread = Thread(
                 target=self._delete_from_table,
-                args=(connection, self._level1_name, document_path),
-                daemon=True
+                args=(connection, self._level1_name, document_path)
             )
             l1_thread.start()
 
             l2_thread = Thread(
                 target=self._delete_from_table,
-                args=(connection, self._level2_name, document_path),
-                daemon=True
+                args=(connection, self._level2_name, document_path)
             )
             l2_thread.start()
 
-            # l3_thread = Thread(
-            #     target=self._delete_from_table,
-            #     args=(connection, self._level3_name, document_path),
-            #     daemon=True
-            # )
-            # l3_thread.start()
+            catalog_thread.join()
+            l1_thread.join()
+            l2_thread.join()
 
 
 

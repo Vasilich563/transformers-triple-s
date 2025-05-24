@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 from backend.embedding_system.embedding_system import EmbeddingSystem
 from backend.transformer.bidirectional_transformer import BidirectionalTransformer
 from backend.embedding_system.db_crud import DBCrud
+from backend.embedding_system.make_db import make_db
 from backend.crawler import observe_directory_daemon
 
 
@@ -32,8 +33,11 @@ checkpoint = torch.load("/home/yackub/PycharmProjects/Diploma/backend/transforme
 embedding_model.load_state_dict(checkpoint["best_weights"])
 embedding_model.eval()
 
+d_model = 1024
 from transformers import RobertaModel
 embedding_model = RobertaModel.from_pretrained("FacebookAI/roberta-large").to(device)
+
+make_db(d_model)
 
 db_engine = create_engine("postgresql://postgres:ValhalaWithZolinks@localhost:5432/postgres")
 db_crud = DBCrud(db_engine)
@@ -93,7 +97,7 @@ def search_page():
         return main_page(limit, search_by_name_flag, exactly_flag)
 
     result_list = process_db_select_results(
-        EmbeddingSystem.handle_user_query(user_query, search_by_name_flag, exactly_flag, limit)
+        EmbeddingSystem.handle_user_query(d_model, user_query, search_by_name_flag, exactly_flag, limit)
     )
     # result_list = [
     #     {

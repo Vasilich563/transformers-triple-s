@@ -6,7 +6,7 @@ LEVEL_TABLE_NAME_PREFIX = "snippet_level"
 CATALOG_TABLE_NAME = "documents_catalog"
 
 
-def actions_on_snippet_level(connection, level):
+def actions_on_snippet_level(connection, level, embedding_dim):
     connection.execute(
         text(f"""
             CREATE TABLE IF NOT EXISTS {SCHEMA_NAME}.{LEVEL_TABLE_NAME_PREFIX}{level}(
@@ -16,7 +16,7 @@ def actions_on_snippet_level(connection, level):
                 snippet TEXT NOT NULL,
                 embedding vector(:dim)
             );
-        """), {"dim": EMBEDDING_DIM}
+        """), {"dim": embedding_dim}
     )
 
     connection.execute(
@@ -28,8 +28,7 @@ def actions_on_snippet_level(connection, level):
     )
 
 
-
-if __name__ == "__main__":
+def make_db(embedding_dim):
     db_engine = create_engine("postgresql://postgres:ValhalaWithZolinks@localhost:5432/postgres")
 
     with db_engine.begin() as connection:
@@ -39,25 +38,28 @@ if __name__ == "__main__":
 
         connection.execute(
             text(f"""
-                CREATE TABLE IF NOT EXISTS {SCHEMA_NAME}.{CATALOG_TABLE_NAME}(
-                    document_path TEXT NOT NULL PRIMARY KEY,
-                    document_name TEXT NOT NULL,
-                    snippet TEXT NOT NULL
-                );
-            """)
+                    CREATE TABLE IF NOT EXISTS {SCHEMA_NAME}.{CATALOG_TABLE_NAME}(
+                        document_path TEXT NOT NULL PRIMARY KEY,
+                        document_name TEXT NOT NULL,
+                        snippet TEXT NOT NULL
+                    );
+                """)
         )
 
         connection.execute(
             text(f"""
-                CREATE INDEX IF NOT EXISTS
-                    {CATALOG_TABLE_NAME}_document_name_hash_index 
-                    ON {SCHEMA_NAME}.{CATALOG_TABLE_NAME} USING HASH (document_name);
-            """)
+                    CREATE INDEX IF NOT EXISTS
+                        {CATALOG_TABLE_NAME}_document_name_hash_index 
+                        ON {SCHEMA_NAME}.{CATALOG_TABLE_NAME} USING HASH (document_name);
+                """)
         )
 
-        actions_on_snippet_level(connection, 1)
+        actions_on_snippet_level(connection, 1, embedding_dim)
 
-        actions_on_snippet_level(connection, 2)
+        actions_on_snippet_level(connection, 2, embedding_dim)
+
+if __name__ == "__main__":
+    make_db(EMBEDDING_DIM)
 
         #actions_on_snippet_level(connection, 3)
 

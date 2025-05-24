@@ -78,6 +78,8 @@ class CrawlerHandler(FileSystemEventHandler):
     def on_created(self, event: FileCreatedEvent):
         if not event.is_directory:
             text = self._extract_text(event.src_path)
+            print("INSERT")
+            print(text)
             if text is not None:
                 delete_daemon = Thread(target=EmbeddingSystem.index_new_text, args=(text, event.src_path), daemon=True)
                 delete_daemon.start()
@@ -85,10 +87,15 @@ class CrawlerHandler(FileSystemEventHandler):
 
     def on_deleted(self, event: FileDeletedEvent):
         if not event.is_directory:
+            print("DELETE")
             for postfix in self.postfixes:
+                print(f"DELETE {postfix}")
                 if event.src_path.endswith(postfix):
+                    print("DELETE")
                     delete_daemon = Thread(target=EmbeddingSystem.remove_document, args=(event.src_path,), daemon=True)
                     delete_daemon.start()
+                    break
+
 
 
     def _handle_on_modified(self, event: FileModifiedEvent):
@@ -100,6 +107,7 @@ class CrawlerHandler(FileSystemEventHandler):
 
         remove_thread.join()
         if text is not None:
+            print('Modified\n', text)
             EmbeddingSystem.index_new_text(text, event.src_path)
 
 
@@ -110,6 +118,7 @@ class CrawlerHandler(FileSystemEventHandler):
                 if event.src_path.endswith(postfix):
                     modified_daemon = Thread(target=self._handle_on_modified, args=(event,), daemon=True)
                     modified_daemon.start()
+                    break
 
 
     def _handle_on_moved(self, event: FileModifiedEvent):
@@ -122,11 +131,13 @@ class CrawlerHandler(FileSystemEventHandler):
                 remove_src_thread = Thread(target=EmbeddingSystem.remove_document, args=(event.src_path,))
                 remove_src_thread.start()
                 remove_src_thread.join()
+                break
 
         remove_dest_thread.join()
 
         text = self._extract_text(event.dest_path)
         if text is not None:
+            print("Moved\n", text)
             EmbeddingSystem.index_new_text(text, event.src_path)
 
 
@@ -137,6 +148,7 @@ class CrawlerHandler(FileSystemEventHandler):
                 if event.dest_path.endswith(postfix):
                     moved_daemon = Thread(target=self._handle_on_moved, args=(event,), daemon=True)
                     moved_daemon.start()
+                    break
 
 
 def observe_directory(path):
