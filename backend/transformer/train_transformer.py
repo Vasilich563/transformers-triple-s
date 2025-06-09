@@ -4,7 +4,7 @@ sys.path.append('C:\\Users\\amis-\\PycharmProjects\\semantic_search_system')
 import csv
 import json
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Thread
 # from random import shuffle
 import torch
@@ -14,7 +14,12 @@ from backend.transformer.bidirectional_transformer import BidirectionalTransform
 from transformers import RobertaTokenizerFast, DataCollatorForLanguageModeling
 
 
-def train_step(model, optimizer, schedule, loss_function, dataloader, step, warmup_step, total_steps, model_device):
+def train_step(
+        model, optimizer, schedule, loss_function,
+        dataloader, step, warmup_step, total_steps,
+        model_device, last_checkpoint_time, start_training_time,
+        best_weights, best_val_loss, path_to_save_checkpoints, checkpoint_number
+):
     running_loss = 0
     step_before_start = step
     for data in dataloader:
@@ -22,7 +27,7 @@ def train_step(model, optimizer, schedule, loss_function, dataloader, step, warm
         x_batch = data["input_ids"].to(model_device)
         mask_batch = data["hugging_face_mask"].to(model_device)
         y_batch = data["labels"].to(model_device)
-        sample_logits = model.train_forward(x_batch, hugging_face_mask=mask_batch)  # TODO unpack x
+        sample_logits = model.train_forward(x_batch, hugging_face_mask=mask_batch)
 
         batch, seq_len, vocab_size = sample_logits.shape
         sample_logits = sample_logits.view(batch * seq_len, vocab_size)
@@ -41,17 +46,33 @@ def train_step(model, optimizer, schedule, loss_function, dataloader, step, warm
         if step % warmup_step == 0:
             schedule.step()
 
+        after_checkpoint_period = datetime.now() - last_checkpoint_time
+        after_start_period = datetime.now() - start_training_time
+
+        if after_checkpoint_period.total_seconds() > timedelta(hours=8).total_seconds():
+            save_checkpoint_daemon(model, optimizer, schedule, best_weights, best_val_loss, step,
+                                   path_to_save_checkpoints, f"{checkpoint_number}_last_8_hours")
+            last_checkpoint_time = datetime.now()
+
+        if after_start_period.total_seconds() > timedelta(hours=24).total_seconds():
+            save_checkpoint_daemon(model, optimizer, schedule, best_weights, best_val_loss, step,
+                                   path_to_save_checkpoints, f"{checkpoint_number}_24_hours")
+            start_training_time = datetime.now()
+
     running_loss = running_loss / (step - step_before_start)
-    return running_loss, step, False  # loss, step, end_training
+    return running_loss, step, False, last_checkpoint_time, start_training_time  # loss, step, end_training, last_checkpoint_time, start_training_time
 
 
-def validation_step(model, loss_function, dataloader, batches_amount, model_device):
+def validation_step(
+        model, loss_function, dataloader, batches_amount, model_device, last_checkpoint_time, start_training_time,
+        optimizer, schedule, best_weights, best_val_loss, step, path_to_save_checkpoints, checkpoint_number
+):
     running_loss = 0
     for data in dataloader:
         x_batch = data["input_ids"].to(model_device)
         mask_batch = data["hugging_face_mask"].to(model_device)
         y_batch = data["labels"].to(model_device)
-        sample_logits = model.train_forward(x_batch, hugging_face_mask=mask_batch)  # TODO unpack x
+        sample_logits = model.train_forward(x_batch, hugging_face_mask=mask_batch)
 
         batch, seq_len, vocab_size = sample_logits.shape
         sample_logits = sample_logits.view(batch * seq_len, vocab_size)
@@ -61,8 +82,22 @@ def validation_step(model, loss_function, dataloader, batches_amount, model_devi
 
         running_loss += loss.detach().cpu().item()
 
+        after_checkpoint_period = datetime.now() - last_checkpoint_time
+        after_start_period = datetime.now() - start_training_time
+
+        if after_checkpoint_period.total_seconds() > timedelta(hours=8).total_seconds():
+            save_checkpoint_daemon(model, optimizer, schedule, best_weights, best_val_loss, step,
+                                   path_to_save_checkpoints, f"{checkpoint_number}_last_8_hours")
+            last_checkpoint_time = datetime.now()
+
+        if after_start_period.total_seconds() > timedelta(hours=24).total_seconds():
+            save_checkpoint_daemon(model, optimizer, schedule, best_weights, best_val_loss, step,
+                                   path_to_save_checkpoints, f"{checkpoint_number}_24_hours")
+            start_training_time = datetime.now()
+
+
     running_loss = running_loss / batches_amount
-    return running_loss
+    return running_loss, last_checkpoint_time, start_training_time
 
 
 def get_batches_amount(dataset_size, batch_size):
@@ -97,9 +132,11 @@ def save_checkpoint_daemon(
 def train(
     model: torch.nn.Module, optimizer: torch.optim.Optimizer, schedule, loss_function,
     train_dataloader: torch.utils.data.DataLoader, val_dataloader: torch.utils.data.DataLoader,
-    warmup_step, total_steps, model_device, path_to_save_checkpoints,
+    warmup_step, total_steps, model_device, path_to_save_checkpoints, program_start
 ):
     train_start = datetime.now()
+    last_checkpoint_time = datetime.now()
+    start_training_time = program_start
     print("Start training")
     train_losses = []
     val_losses = []
@@ -112,13 +149,18 @@ def train(
     checkpoint = 1
     while True:
         epoch_start = datetime.now()
-        train_running_loss, step, end_training = train_step(
-            model, optimizer, schedule, loss_function, train_dataloader, step, warmup_step, total_steps, model_device
+        train_running_loss, step, end_training, last_checkpoint_time, start_training_time = train_step(
+            model, optimizer, schedule, loss_function, train_dataloader, step, warmup_step, total_steps, model_device,
+            last_checkpoint_time, start_training_time, best_model_weights, best_val_loss, path_to_save_checkpoints, checkpoint
         )
 
         with torch.no_grad():
             model.eval()
-            val_running_loss = validation_step(model, loss_function, val_dataloader, val_batches_amount, model_device)
+            val_running_loss, last_checkpoint_time, start_training_time = validation_step(
+                model, loss_function, val_dataloader, val_batches_amount, model_device,
+                last_checkpoint_time, start_training_time,
+                optimizer, schedule, best_model_weights, best_val_loss, step, path_to_save_checkpoints, checkpoint
+            )
             if val_running_loss < best_val_loss:
                 best_val_loss = val_running_loss
                 best_model_weights = deepcopy(model.state_dict())
@@ -182,12 +224,7 @@ def init_dataloaders(train_dataset, val_dataset, data_collator, batch_size):
 
 
 if __name__ == "__main__":
-    # TODO retokenize dataset using max len 64
-    # TODO level 1 - 16, level 2 - 32
-    # TODO order is 122 -> 1
-    # TODO check how much files can be loaded in new order
-    # TODO change values of levels and max len in report
-
+    program_start = datetime.now()
     tokenizer = RobertaTokenizerFast.from_pretrained("FacebookAI/roberta-large")
     mlm_probability = 0.15
     mlm_collator = DataCollatorForLanguageModeling(tokenizer, mlm_probability=mlm_probability, return_tensors='pt')
@@ -195,9 +232,8 @@ if __name__ == "__main__":
     model_dtype = torch.float32
 
     vocab_size = len(tokenizer.get_vocab())
-    max_len = 256
-    # TODO max_len = 128
-    #stride = 0
+    max_len = 64
+
     num_layers = 12
     d_model = 768
     num_attention_heads = 12
@@ -212,9 +248,9 @@ if __name__ == "__main__":
     # TODO batch_size = 4096 or 2048 or 1024 or 512
     batch_size = 64
     # TODO total_steps = 1048576 or 2097152 or 4194304 or 8388608
-    total_steps = 20000
-    # TODO warmup_step = 24576
-    warmup_step = 6000
+    total_steps = 67108864
+    warmup_step = 24576
+
     weight_decay = 0.01
     eps = 1e-6
     beta1 = 0.9
@@ -227,20 +263,20 @@ if __name__ == "__main__":
 
     loss_function = torch.nn.CrossEntropyLoss(ignore_index=-100)
 
-    path_to_save_checkpoints = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/transformer/train_logs/1/checkpoints"
-    losses_filename = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/transformer/train_logs/1/losses.csv"
+    path_to_save_checkpoints = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/transformer/train_logs/2/checkpoints"
+    losses_filename = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/transformer/train_logs/2/losses.csv"
 
     data_device = torch.device("cpu")
     ids_dtype = torch.uint16
     mask_dtype = torch.int8
 
-    train_dataset_path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train"
+    train_dataset_path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train"
     # TODO train_last_index = 43
-    train_last_index = 1
+    train_last_index = 5
 
-    val_dataset_path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/val"
+    val_dataset_path = "C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/val"
     # TODO val_last_index = 9
-    val_last_index = 1
+    val_last_index = 3
 
     print("Loading train dataset...")
     train_dataset = load_dataset(train_dataset_path, train_last_index, data_device, ids_dtype, mask_dtype)
@@ -253,7 +289,7 @@ if __name__ == "__main__":
         triple_s_roberta, optimizer, lr_decay_schedule, loss_function,
         train_dataloader, val_dataloader,
         warmup_step, total_steps, model_device,
-        path_to_save_checkpoints
+        path_to_save_checkpoints, program_start
     )
 
     save_losses_thread = Thread(target=save_losses, args=(train_losses, val_losses, losses_filename))

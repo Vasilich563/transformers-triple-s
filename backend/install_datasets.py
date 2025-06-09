@@ -191,20 +191,15 @@ def remove50108_from_files(path, last_index):
 #join_datasets()
 # install_and_tokenize()
 # change_order_of_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train", 143)
-# remove50108_from_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train", 143)
-# remove50108_from_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/val", 15)
+remove50108_from_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train", 143)
+remove50108_from_files("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/val", 15)
 
 # TODO split dataset using 128 max len
 # TODO 90 files???
 #join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train", 143, torch.device("cpu"), torch.uint16, torch.int8)
 #join_jsons_to_torch("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets/train", 1, torch.device("cpu"), torch.uint16, torch.int8)
 
-with open("C:/Users/amis-/PycharmProjects/semantic_search_system/backend/new_datasets-2/train/part143.json", 'r') as fin:
-    a = json.load(fin)
-    print("read")
-    for i in range(len(a)):
-        if 50108 in a[i]["input_ids"]:
-            print("Yes")
+
 
 
 
