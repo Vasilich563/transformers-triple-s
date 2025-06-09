@@ -4,9 +4,9 @@ Transformers Triple-S is semantic search system, that uses transformer's powers 
 
 <img src="https://i.scdn.co/image/ab67616d0000b273b12877d8bdfaa0f19b4624fa" Title="ValhalaHatesOstis">
 
-This is [Colab](https://colab.research.google.com/drive/1YA6n8_EkFoXuT37fpImykPWkEBwNJp5_?usp=sharing) to train transformer. 
+# This is [Colab](https://colab.research.google.com/drive/1YA6n8_EkFoXuT37fpImykPWkEBwNJp5_?usp=sharing) to train transformer. 
 
-To make virtual environment run commands:
+# To make virtual environment run commands:
 ```
 python3 -m venv venv
 ```
@@ -20,7 +20,7 @@ pip install -r requirements.txt
 pip install -r torch_requirements.txt
 ```
 
-To run database run commands:
+# To run database run commands:
 ```
 docker pull postgres:17
 ```
